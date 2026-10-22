@@ -47,7 +47,7 @@ func _stats(image: Image) -> String:
 	var count := 0
 	for y in range(0, size.y, stride):
 		for x in range(0, size.x, stride):
-			var value: float = image.get_pixel(x, y).red
+			var value: float = image.get_pixel(x, y).r
 			low = minf(low, value)
 			high = maxf(high, value)
 			total += value

@@ -119,20 +119,26 @@ which is a little cheaper on VRAM bookkeeping and gives a finer reference.
 ### Stage 4 — combine (pass 2)
 
 For every level, the contribution is its deviation from the average map,
-gamma-lifted, scaled by that level's contrast, and weighted:
+gamma-lifted, scaled by that level's contrast, offset to mid-grey, and weighted:
 
 ```
-contribution[i] = (pow(level[i], 0.45) - pow(avg, 0.45)) * contrast[i] * weight[i]
+contribution[i] = ((pow(level[i], 0.45) - pow(avg, 0.45)) * contrast[i] + 0.5) * weight[i]
 height = sum(contribution) / sum(weight)
 ```
 
-Two details carry the whole look:
+Three details carry the whole look:
 
 - `pow(x, 0.45)` lifts midtones so fine detail survives in dark areas. With a
   plain subtraction, a dark brick's grain is smaller than the noise floor of
   the average; the lift makes it visible.
 - Subtracting `pow(avg, 0.45)` kills the lighting gradient: what remains is
   relief at the scale of each level.
+- The `+ 0.5` inside each contribution is what keeps the sum centred. A flat
+  source makes every deviation 0, so the weighted average lands on 0.5 —
+  neutral mid-grey. Without it the sum collapses to 0, `(0 - 0.5) * 1.5 + 0.5`
+  is negative, the clamp takes it to 0, and the output is pure black. The first
+  Godot port shipped exactly this bug; `tests/height_cpu.tscn` is the check for
+  it (a flat source must give 0.500 everywhere).
 
 Then the final polish:
 
@@ -227,25 +233,53 @@ with Unity was explicitly not a goal.
   readback, HDR, repeat-wrap, blur-kernel probe.
 - `tests/height_test.gd` + `tests/height_test.tscn` — end-to-end run on the
   stone pattern, writing PNGs and statistics.
+- `tests/height_cpu.gd` + `tests/height_cpu.tscn` — CPU-only reference
+  implementation of the whole pipeline (no GPU, no VRAM), used to validate the
+  math and to provide a reference image for the GPU result.
 
 ## 7. Testing status
 
 The user's machine has no VRAM headroom, so **no GPU pass has been executed
-yet**. What is verified: `godot --headless --import --path .` and
-`godot --headless --quit --path .` run clean (scripts parse, scenes load, the
-panel syncs, the roadmap prints). What is not verified: shader compilation,
-HDR readback, repeat wrap, blur tap behaviour, and the visual result.
+yet**. What is verified:
+
+- `godot --headless --import --path .` and `godot --headless --quit --path .`
+  run clean (scripts parse, scenes load, the panel syncs, the roadmap prints).
+- **The algorithm itself, on the CPU.** `tests/height_cpu.tscn` is a pure
+  GDScript reference implementation of all four stages — grey base, the
+  raised-cosine separable pyramid, the wide average map, the combine. It uses
+  no GPU, no VRAM, no shaders, so it validates the math on its own:
+
+  ```
+  godot --headless --quit --path . res://tests/height_cpu.tscn
+  ```
+
+  Results at 128² (about 100 s, `posmod` wrapping, linear taps matching
+  `filter_linear + repeat_enable`):
+
+  ```
+  flat source   -> min 0.500 max 0.500 mean 0.500   neutral, as required
+  stone source  -> min 0.210 max 0.702 mean 0.402
+  stone result  -> min 0.401 max 0.634 mean 0.498   centred on neutral, no clipping
+  mortar 0.487  brick centres 0.503                  joints read as recessed
+  ```
+
+  This is the test that found the missing `+ 0.5` per level described in
+  Stage 4 — the bug that made the height map come out pure black in the app.
+
+What is not verified: shader compilation, HDR readback, repeat wrap, blur tap
+behaviour, and the visual result.
 
 Run these when VRAM has headroom, in this order:
 
 ```
 DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe
 DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes user://height_test/*.png
-godot --path .                                          # the app
+godot --path .                                           # the app
 ```
 
 The probe prints expected values for each pass; the height test prints source
 and result statistics (min / max / mean) so a broken pass shows up as a flat
 mean, a mean pinned at 0.5, or NaN. In the app, the stone pattern plus default
 settings should show joints as raised lines with a grainy brick surface, and
-the top-down lighting gradient should be gone.
+the top-down lighting gradient should be gone. The GPU result should be close
+to `user://height_cpu/result.png`, the CPU reference.

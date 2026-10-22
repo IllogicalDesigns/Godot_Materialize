@@ -230,22 +230,25 @@ void fragment() {
 	} else {
 		// fragCombineHeight: every level contributes its deviation from the
 		// low-frequency reference, gamma-lifted by pow(x, 0.45) so detail in
-		// dark areas survives. The weight sum normalises the result.
+		// dark areas survives. Unity's contribution is `(deviation * contrast
+		// + 0.5) * weight` - the +0.5 per level is essential: it centres the
+		// sum on neutral mid-grey, so a flat source lands on 0.5 instead of 0
+		// (which would clamp to black). The weight sum normalises the result.
 		highp float avg = pow(texture(avg_map, SCREEN_UV).x, 0.45);
 
-		highp float sum = ((pow(texture(source, SCREEN_UV).x, 0.45) - avg) * contrast0) * weight0;
+		highp float sum = ((pow(texture(source, SCREEN_UV).x, 0.45) - avg) * contrast0 + 0.5) * weight0;
 		highp float weight_total = weight0;
-		sum += ((pow(texture(blur1, SCREEN_UV).x, 0.45) - avg) * contrast1) * weight1;
+		sum += ((pow(texture(blur1, SCREEN_UV).x, 0.45) - avg) * contrast1 + 0.5) * weight1;
 		weight_total += weight1;
-		sum += ((pow(texture(blur2, SCREEN_UV).x, 0.45) - avg) * contrast2) * weight2;
+		sum += ((pow(texture(blur2, SCREEN_UV).x, 0.45) - avg) * contrast2 + 0.5) * weight2;
 		weight_total += weight2;
-		sum += ((pow(texture(blur3, SCREEN_UV).x, 0.45) - avg) * contrast3) * weight3;
+		sum += ((pow(texture(blur3, SCREEN_UV).x, 0.45) - avg) * contrast3 + 0.5) * weight3;
 		weight_total += weight3;
-		sum += ((pow(texture(blur4, SCREEN_UV).x, 0.45) - avg) * contrast4) * weight4;
+		sum += ((pow(texture(blur4, SCREEN_UV).x, 0.45) - avg) * contrast4 + 0.5) * weight4;
 		weight_total += weight4;
-		sum += ((pow(texture(blur5, SCREEN_UV).x, 0.45) - avg) * contrast5) * weight5;
+		sum += ((pow(texture(blur5, SCREEN_UV).x, 0.45) - avg) * contrast5 + 0.5) * weight5;
 		weight_total += weight5;
-		sum += ((pow(texture(blur6, SCREEN_UV).x, 0.45) - avg) * contrast6) * weight6;
+		sum += ((pow(texture(blur6, SCREEN_UV).x, 0.45) - avg) * contrast6 + 0.5) * weight6;
 		weight_total += weight6;
 
 		highp float height = sum / max(weight_total, 0.0001);

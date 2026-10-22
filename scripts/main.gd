@@ -179,9 +179,22 @@ func _on_source_gui_input(event: InputEvent) -> void:
 		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
+	if _source_rect.texture == null:
+		return
+
+	# The preview keeps the image's aspect ratio and centres it, so the click
+	# has to be mapped through the drawn rectangle, not the control rectangle.
+	var texture_size := Vector2(_source_rect.texture.get_size())
+	var rect := _source_rect.size
+	var scale := minf(rect.x / texture_size.x, rect.y / texture_size.y)
+	var drawn := texture_size * scale
+	var local: Vector2 = event.position - (rect - drawn) * 0.5
+	if local.x < 0.0 or local.y < 0.0 or local.x > drawn.x or local.y > drawn.y:
+		return
+
 	var sample_index := _pick_sample
 	var size := source_image.get_size()
-	var uv: Vector2 = event.position / _source_rect.size
+	var uv: Vector2 = local / drawn
 	var x := clampi(int(uv.x * float(size.x)), 0, size.x - 1)
 	var y := clampi(int(uv.y * float(size.y)), 0, size.y - 1)
 	var picked: Color = source_image.get_pixel(x, y)

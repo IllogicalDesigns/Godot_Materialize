@@ -17,10 +17,6 @@ config/icon="res://icon.svg"
 
 [display]
 
+window/stretch/mode="canvas_items"
 window/size/viewport_x=1280
 window/size/viewport_y=720
-window/stretch/mode="canvas_items"
-
-[physics]
-
-common/physics_interpolation=false

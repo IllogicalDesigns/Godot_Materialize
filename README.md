@@ -38,7 +38,11 @@ and a project file (XML) stores every tool's settings plus the map paths.
 ## Current status
 
 Commit 2: the blit framework plus **Height From Diffuse** is ported and wired
-into the app.
+into the app, and its **math is validated on the CPU** by `tests/height_cpu.tscn`
+(no GPU, no VRAM needed). Fixes after the first user run: the combine pass was
+missing Unity's `+ 0.5` per level, which made every height map come out pure
+black; the previews now keep the image's aspect ratio (`STRETCH_KEEP_ASPECT_CENTERED`)
+instead of stretching it to the panel.
 
 ```
 core/blit.gd                        pass framework (SubViewport + quad + ShaderMaterial)
@@ -47,7 +51,7 @@ shaders/height_from_diffuse.gdshader  passes: SAMPLE / BLUR / COMBINE / AVG
 core/test_pattern.gd                procedural stone source (no assets needed)
 ui/height_panel.tscn + .gd          hand-authored control panel (Unity OnGUI equivalent)
 scenes/main.tscn + scripts/main.gd  previews, toolbar, colour picking, debounce, roadmap
-tests/                              blit probe + end-to-end height test
+tests/                              blit probe, end-to-end height test, CPU reference
 docs/how_materialize_works.md       algorithm + design notes
 ```
 
@@ -58,10 +62,12 @@ regenerates live (debounced), and **Save PNG** writes the height map.
 
 **No GPU pass has been executed yet** — the machine has no VRAM headroom, so the
 shader code is written from the class reference and validated only by headless
-parse/import. See `docs/how_materialize_works.md` section 7 for the exact test
-commands to run when VRAM frees up. Expect the first GPU run to surface shader
-syntax issues; the framework probe prints expected values for every behaviour it
-checks (readback, HDR, repeat wrap, blur taps).
+parse/import. The CPU reference test (`tests/height_cpu.tscn`) checks the
+algorithm independently of the GPU, so math bugs and shader bugs can be told
+apart. See `docs/how_materialize_works.md` section 7 for the exact test commands
+to run when VRAM frees up. Expect the first GPU run to surface shader syntax
+issues; the framework probe prints expected values for every behaviour it checks
+(readback, HDR, repeat wrap, blur taps).
 
 ## Repository layout
 
@@ -110,7 +116,8 @@ One tool per commit, in dependency order (later tools consume earlier outputs):
 
 0. **Skeleton** — project, git, roadmap shell. Done.
 1. **Blit framework** — `core/blit.gd`. Done (untested on GPU).
-2. **Height From Diffuse** — ported, wired into the app. Untested on GPU.
+2. **Height From Diffuse** — ported, wired into the app, math validated on the
+   CPU. Untested on GPU.
 3. Normal From Height
 4. Edge From Normal
 5. AO From Normal
@@ -143,6 +150,7 @@ compare the output against a reference render from the Unity tool.
 ```
 cd ~/Godot/materialize
 godot --path . --headless --quit      # parse check + roadmap print (no GPU)
+godot --headless --quit --path . res://tests/height_cpu.tscn  # CPU math reference, ~100 s, no GPU
 godot --path .                        # opens the app
 DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe (needs GPU)
 DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes user://height_test/*.png
