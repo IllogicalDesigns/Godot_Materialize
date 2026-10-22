@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b1rn8uk0elh5v"]
 
-[ext_resource type="Script" uid="uid://2otelfkuwtth" path="res://scripts/main.gd" id="1_gfnmq"]
-[ext_resource type="PackedScene" path="res://ui/height_panel.tscn" id="2_lr6yl"]
+[ext_resource type="Script" uid="uid://2otelfkuwtth" path="res://scripts/main.gd" id="1_3vx28"]
+[ext_resource type="PackedScene" path="res://ui/height_panel.tscn" id="2_pqydv"]
 
 [node name="heightMap" type="Control" unique_id=2123546258]
 layout_mode = 3
@@ -10,7 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_gfnmq")
+script = ExtResource("1_3vx28")
 
 [node name="Split" type="HSplitContainer" parent="." unique_id=1743503193]
 layout_mode = 0
@@ -79,7 +79,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Panel" parent="Split/Scroll" unique_id=50259751 instance=ExtResource("2_lr6yl")]
+[node name="Panel" parent="Split/Scroll" unique_id=50259751 instance=ExtResource("2_pqydv")]
 layout_mode = 2
 size_flags_horizontal = 3
 

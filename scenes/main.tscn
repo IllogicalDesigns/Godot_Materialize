@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bv4rdaybq5ljr"]
 
-[ext_resource type="PackedScene" uid="uid://hb34uhiw72w0" path="res://scenes/map_panel.tscn" id="1_e3056"]
-[ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_41mu8"]
+[ext_resource type="PackedScene" uid="uid://hb34uhiw72w0" path="res://scenes/map_panel.tscn" id="1_0wfyh"]
+[ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_sugp2"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_616h8"]
 
@@ -25,28 +25,28 @@ size_flags_horizontal = 0
 [node name="Maps" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=910327083]
 layout_mode = 2
 
-[node name="MapPanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=720125377 instance=ExtResource("1_e3056")]
+[node name="MapPanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=720125377 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel2" parent="UI/MapsAnd3DFunctions/Maps" unique_id=2041840648 instance=ExtResource("1_e3056")]
+[node name="MapPanel2" parent="UI/MapsAnd3DFunctions/Maps" unique_id=2041840648 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel3" parent="UI/MapsAnd3DFunctions/Maps" unique_id=603737742 instance=ExtResource("1_e3056")]
+[node name="MapPanel3" parent="UI/MapsAnd3DFunctions/Maps" unique_id=603737742 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel4" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1761205318 instance=ExtResource("1_e3056")]
+[node name="MapPanel4" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1761205318 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel5" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 instance=ExtResource("1_e3056")]
+[node name="MapPanel5" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel6" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 instance=ExtResource("1_e3056")]
+[node name="MapPanel6" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="MapPanel7" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 instance=ExtResource("1_e3056")]
+[node name="MapPanel7" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
-[node name="SavePanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=323743495 instance=ExtResource("2_41mu8")]
+[node name="SavePanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=323743495 instance=ExtResource("2_sugp2")]
 layout_mode = 2
 
 [node name="3DViewFunctions" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=897229439]
@@ -95,8 +95,8 @@ text = "Make Suggestion"
 layout_mode = 2
 text = "Hide Gui"
 
-[node name="MapOptionsPanel" type="Panel" parent="UI" unique_id=1610355586]
-custom_minimum_size = Vector2(300, 600)
+[node name="MapOptionsPanel" type="PanelContainer" parent="UI" unique_id=1105177742]
+custom_minimum_size = Vector2(400, 600)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 8
