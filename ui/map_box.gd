@@ -49,6 +49,15 @@ func set_image(image: Image) -> void:
 		return
 	_preview.texture = ImageTexture.create_from_image(Blit.to_display(image))
 
+## Re-applies the title and create label after _ready, so the shell can name a
+## box once it knows which map it holds. The instance exports are read in
+## _ready, which runs before the shell's _ready.
+func set_labels(new_title: String, new_create_label: String) -> void:
+	title = new_title
+	create_label = new_create_label
+	$Box/Title.text = title
+	$Box/Createrow/Create.text = create_label
+
 ## Materialize greys buttons out with GUI.enabled; this is the same thing.
 func set_button_enabled(action: String, enabled: bool) -> void:
 	(_buttons[action] as Button).disabled = not enabled

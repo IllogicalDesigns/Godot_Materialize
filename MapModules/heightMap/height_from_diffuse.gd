@@ -21,7 +21,7 @@ extends RefCounted
 ## slow luminance ramp, and that ramp must not become a slope in the height map.
 ## The pyramid plus average subtraction keeps only detail at each scale.
 
-const SHADER_PATH := "res://shaders/height_from_diffuse.gdshader"
+const SHADER_PATH := "res://MapModules/heightMap/height_from_diffuse.gdshader"
 
 ## Number of scales in the pyramid: level 0 is the sharp base, levels 1..6 are
 ## the progressive blurs.

@@ -37,53 +37,80 @@ and a project file (XML) stores every tool's settings plus the map paths.
 
 ## Current status
 
-Commit 2: the blit framework plus **Height From Diffuse** is ported and wired
-into the app, and its **math is validated on the CPU** by `tests/height_cpu.tscn`
-(no GPU, no VRAM needed). Fixes after the first user run: the combine pass was
-missing Unity's `+ 0.5` per level, which made every height map come out pure
-black; the previews now keep the image's aspect ratio (`STRETCH_KEEP_ASPECT_CENTERED`)
-instead of stretching it to the panel.
+The app is laid out like Materialize's window, and **Height From Diffuse is ported
+and running on the GPU**: the stone test pattern feeds the source, the panel's
+sliders regenerate the map, and the generated map goes live onto the
+`MeshInstance3D` preview.
 
 ```
-core/blit.gd                        pass framework (SubViewport + quad + ShaderMaterial)
-core/height_from_diffuse.gd         settings, presets, gain mapping, generate() coroutine
-shaders/height_from_diffuse.gdshader  passes: SAMPLE / BLUR / COMBINE / AVG
-core/test_pattern.gd                procedural stone source (no assets needed)
-ui/height_panel.tscn + .gd          hand-authored control panel (Unity OnGUI equivalent)
-scenes/main.tscn + scripts/main.gd  previews, toolbar, colour picking, debounce, roadmap
-tests/                              blit probe, end-to-end height test, CPU reference
-docs/how_materialize_works.md       algorithm + design notes
+MapModules/map_module.gd              the module contract (map_type/settings/panel_scene/generate/preview)
+MapModules/heightMap/                 the Height module:
+  height_from_diffuse.gd              settings, presets, gain mapping, generate() coroutine
+  height_from_diffuse.gdshader        passes: SAMPLE / BLUR / COMBINE / AVG
+  height_panel.tscn + .gd            the tool panel, laid out like HeightFromDiffuseGui.cs
+  height_map_module.gd               the module that binds the generator and the panel
+core/blit.gd                          pass framework (SubViewport + quad + ShaderMaterial)
+core/test_pattern.gd                  procedural stone source (no assets needed)
+shaders/mesh_preview.gdshader         the 3D preview material (map + Height Reveal Slider)
+ui/map_box.gd + scenes/map_panel.tscn the map box (preview, P C O S, Quick Save, Preview, Create, Clear)
+scenes/main.tscn + scripts/main.gd    the app shell: box row, panel slot, mesh, dialogs, toolbar, roadmap
+scenes/save_panel.tscn                the saving box (file format + Save all maps!)
+tests/                                blit probe, end-to-end height test, CPU reference, live preview check
+docs/how_materialize_works.md         algorithm + design notes
 ```
 
-The app: load a diffuse image (PNG/JPG) or press **Stone test pattern**, pick a
-resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool
-regenerates live (debounced), and **Save PNG** writes the height map.
-**Pick** arms colour sampling; clicking the source preview feeds a sample colour.
+The first GPU run (RTX 3080, Forward+) passed: the stone source generates a
+1024² height map, and the GPU output matches the CPU reference in
+`tests/height_cpu.tscn` (mean 0.498 exact, min/max within 0.05 — the CPU
+reference approximates the shader's edge-tap window fade). `tests/live_preview.tscn`
+drives the panel like a user and checks the whole chain: the map lands on the mesh,
+the Height Reveal Slider writes the mesh material's `reveal` uniform with no pass
+chain, the "Details" weight preset goes through settings → debounce → pass chain,
+and the map checksum moves, which is what proves the uniforms reached the shader.
 
-**No GPU pass has been executed yet** — the machine has no VRAM headroom, so the
-shader code is written from the class reference and validated only by headless
-parse/import. The CPU reference test (`tests/height_cpu.tscn`) checks the
-algorithm independently of the GPU, so math bugs and shader bugs can be told
-apart. See `docs/how_materialize_works.md` section 7 for the exact test commands
-to run when VRAM frees up. Expect the first GPU run to surface shader syntax
-issues; the framework probe prints expected values for every behaviour it checks
-(readback, HDR, repeat wrap, blur taps).
+The app: load a diffuse image (PNG/JPG) or press **Stone Test Pattern**, pick a
+resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool regenerates
+live (debounced), the map box preview and the mesh update, and **Save Map** writes a
+PNG. Clicking a box's **Create** makes that map active: its panel slots into
+`MapOptionsPanel` and its map goes onto the mesh. The unported maps' Create buttons
+are disabled, and the status line names the Unity file each one still needs.
+
+### Deviations from Materialize
+
+- The Height Reveal Slider defaults to 1.0 (Materialize's `HFDS.Slider` defaults to
+  0.5), so the mesh shows the map in full from the first run.
+- Materialize draws 8 `-` markers between the contrast faders' zero line; the panel
+  omits them (Godot has no equivalent decoration).
+- Colour picking uses the map box preview's UV (the box forwards clicks as
+  `preview_clicked`), not Materialize's 3D mesh raycast.
+- BMP/TGA/TIFF export fall back to PNG with a status note: Unity used
+  `FreeImage.dll`, which has no Godot equivalent.
+- A toolbar row (Load Diffuse, Stone Test Pattern, Resolution, Generate, Save Map,
+  status) is port-only: Materialize's window has no status line.
+- "Use Normal as input" swaps the sample controls for Spread/SpreadBoost in Unity;
+  it is not implemented, since Normal From Height is not ported.
 
 ## Repository layout
 
 ```
 project.godot          Godot 4 project, main scene = scenes/main.tscn
-scenes/                UI scenes (the tool shell lives in scenes/main.tscn)
-scripts/               UI / app-level GDScript
-core/                  <- GDScript ports of the texture generators (one file per tool)
-shaders/               <- .gdshader ports of the Unity shaders (one per tool)
-ui/                    <- per-tool control panels (the Unity OnGUI panels)
-docs/                  <- how_materialize_works.md
+scenes/                the app shell, the map box scene, the saving box scene
+scripts/               the app shell script
+MapModules/            one folder per texture map (the module contract in map_module.gd)
+  heightMap/           generator + shader + panel + module: the reference implementation
+core/                <- shared framework: blit.gd, test_pattern.gd
+shaders/             <- app-level shaders (the preview material), not per-map generators
+ui/                  <- map_box.gd (the box is generic, so it is not per-map)
+docs/                <- how_materialize_works.md
 assets/cubemaps/       <- cube maps for the preview lighting (empty, deferred)
 assets/models/         <- preview meshes (the Unity FBX test objects, deferred)
 assets/textures/       <- stock maps (flat white / black / grey / normal, deferred)
-tests/                 <- framework probe + end-to-end generator tests
+tests/                 <- framework probe + generator tests + live preview check
 ```
+
+The six unported maps (Diffuse, Normal, Metallic, Smoothness, Edge, AO) get their
+own `MapModules/<map>Map/` folder when ported; the roadmap print in
+`scripts/main.gd` lists which Unity file each one comes from.
 
 ## Unity -> Godot mapping
 
@@ -94,7 +121,8 @@ tests/                 <- framework probe + end-to-end generator tests
 | `RenderTexture` (RFloat / Linear, `wrapMode = Repeat`) | working `Image` in `FORMAT_RGBAF` in CPU RAM, uploaded per pass as `ImageTexture`; samplers declared `filter_linear, repeat_enable` |
 | `Shader` / CGINCLUDE fragment programs | `.gdshader` (canvas_item fragment, `SCREEN_UV`) |
 | `Shader_SetFloat` / `SetTexture` | `material.set_shader_parameter()`, `Image` values auto-uploaded |
-| `OnGUI` panels with sliders | `Control` scenes + `HSlider`, `CheckBox`, `Button`, `ColorPicker`, `OptionButton` |
+| `OnGUI` panels with sliders | `Control` scenes + `HSlider`, `VSlider`, `CheckBox`, `Button`, `ColorPicker`, `OptionButton` |
+| `GUI.Box` / `GUI.Label` / `GUI.Button` layout | `PanelContainer` + `Label` + `Button`, sized from `MainGui.cs`'s pixel rectangles |
 | `_GamaCorrection` (`pow(x, 2.2)`) | dropped: the port works in raw 0..1 file values throughout |
 | `FreeImage.dll` (Targa/bmp/tiff io) | `Image.load_from_file`, `save_png/save_jpg/save_webp` (BMP/TIFF/TGA export need a writer) |
 | `TargaImporter.cs` | not needed: Godot loads `.tga` natively |
@@ -102,22 +130,31 @@ tests/                 <- framework probe + end-to-end generator tests
 | `.psd` GUI icons | not supported → convert to `.png` |
 | XML project save (`SaveLoadProject.cs`) | `ConfigFile` (`.ini`) or `JSON` |
 
-Design note: every generator is a `core/<tool>.gd` resource class exposing
-`settings` (a `Dictionary` with the same slider names the Unity GUI uses) and
-`generate(source: Image, blit: Blit) -> Image`. All generators share one
-`core/blit.gd`, so a pass is "set shader params, draw the quad, read back the
-image". Keeping the pyramid in CPU RAM (one `ImageTexture` live per pass) is
-what makes this feasible on a machine with little VRAM: at 1024² the combine
-pass holds 8 float textures (~128 MB), not the whole pyramid.
+Design note: each map lives in `MapModules/<map>Map/` as a `MapModule` node
+(`map_type()`, `map_title()`, `save_suffix()`, `settings()`, `panel_scene()`,
+`generate(source, blit)`, `preview(map)`, `create_available(maps)`, `set_map()`,
+`clear_map()`) wrapping a generator resource class that exposes `settings` (a
+`Dictionary` with the same slider names the Unity GUI uses). The app shell owns the
+`Blit` node, the source image, the map store, the panel slot, and the mesh, so a
+module never touches shared state; a new map module plugs in without touching the
+shell. All generators share one `core/blit.gd`, so a pass is "set shader params,
+draw the quad, read back the image". Keeping the pyramid in CPU RAM (one
+`ImageTexture` live per pass) is what makes this feasible on a machine with little
+VRAM: at 1024² the combine pass holds 8 float textures (~128 MB), not the whole
+pyramid.
+
+The Height Reveal Slider is a preview control, so it is not blended into the map:
+the mesh preview material (`shaders/mesh_preview.gdshader`) mixes the map towards
+mid-grey by `reveal` on the GPU, which makes dragging the slider free.
 
 ## Port order
 
 One tool per commit, in dependency order (later tools consume earlier outputs):
 
 0. **Skeleton** — project, git, roadmap shell. Done.
-1. **Blit framework** — `core/blit.gd`. Done (untested on GPU).
-2. **Height From Diffuse** — ported, wired into the app, math validated on the
-   CPU. Untested on GPU.
+1. **Blit framework** — `core/blit.gd`. Done, validated on the GPU by the probe.
+2. **Height From Diffuse** — ported, wired into the app, panel and live mesh output
+   validated on the GPU. Done.
 3. Normal From Height
 4. Edge From Normal
 5. AO From Normal
@@ -130,8 +167,9 @@ One tool per commit, in dependency order (later tools consume earlier outputs):
 12. Export (file formats) + project save/load
 
 For each tool: read the Unity `.cs` GUI + `Blit_*.shader`, port the shader to
-`.gdshader`, port the GUI panel into `ui/`, wire the settings to the shader,
-compare the output against a reference render from the Unity tool.
+`.gdshader`, port the GUI panel into `MapModules/<map>Map/`, wire the settings to
+the shader through the module contract, compare the output against a reference
+render from the Unity tool.
 
 ## Known gaps to decide later
 
@@ -149,9 +187,15 @@ compare the output against a reference render from the Unity tool.
 
 ```
 cd ~/Godot/materialize
-godot --path . --headless --quit      # parse check + roadmap print (no GPU)
+godot --headless --path . --import  # rebuild the class cache + .uid files
+godot --path . --headless --quit     # parse check + roadmap print (no GPU)
 godot --headless --quit --path . res://tests/height_cpu.tscn  # CPU math reference, ~100 s, no GPU
-godot --path .                        # opens the app
-DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe (needs GPU)
+godot --path .                       # opens the app
+DISPLAY=:1 godot --path . res://tests/live_preview.tscn  # live mesh + panel chain, writes user://live_preview_*.png
+DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe (readback, HDR, repeat wrap, blur taps)
 DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes user://height_test/*.png
 ```
+
+The live preview test prints the map statistics and the panel chain checks; it also
+saves `live_preview_window.png`, a screenshot of the running app. On Linux,
+`user://` is `~/.local/share/godot/app_userdata/materialize/`.

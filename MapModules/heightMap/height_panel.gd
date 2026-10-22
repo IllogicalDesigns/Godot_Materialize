@@ -1,42 +1,49 @@
 extends Control
 class_name HeightPanel
-## Height From Diffuse tool scene, laid out like Materialize's window
-## (`HeightFromDiffuseGui.cs` `DoMyWindow`), top to bottom:
+## Height From Diffuse tool panel, laid out like Materialize's window
+## (`HeightFromDiffuseGui.cs` `DoMyWindow`, 300 x 590 px), top to bottom:
 ##
-##   Diffuse / Original Diffuse / Normal    source radio row
-##   Height Reveal Slider                   preview reveal
-##   Frequency Weight Equalizer             7 vertical faders (coarse .. fine,
-##                                          left to right, as in Materialize)
-##                                          + Default / Details / Displace
-##   Frequency Contrast Equalizer           7 vertical faders
-##                                          + Default / Cracks / Funky
-##   Use Color Sample 1 + Isolate Mask      Pick Color + swatch
-##                                          + Hue Sat Lum Low High Height faders
-##   Use Color Sample 2 ...                same block
-##   Sample Blend
-##   Final Gain (-0.5..0.5), Final Contrast (-10..10), Final Bias (-1..1)
-##   Set as Height Map
+##   " Diffuse" / "Original Diffuse" / " Normal"   source radio row
+##   "Height Reveal Slider"                        preview reveal (0..1, 0.5)
+##   "Frequency Weight Equalizer"                  7 vertical faders, Blur6 (left)
+##                                                 to Blur0 (right), 0..1, +
+##                                                 "Default" "Details" "Displace"
+##   "Frequency Contrast Equalizer"                7 vertical faders, -5..5, +
+##                                                 "Default" "Cracks" "Funky"
+##   "Use Color Sample 1" + "Isolate Mask"         "Pick Color" + swatch, then
+##                                                 faders Hue Sat Lum Low High Height
+##   "Use Color Sample 2" ...                      same block
+##   "Sample Blend"
+##   "Final Gain" (-0.5..0.5) "Final Contrast" (-10..10) "Final Bias" (-1..1)
+##   "Set as Height Map"
 ##
-## The widgets are authored in `scenes/tools/height_from_diffuse.tscn`; this
+## The widgets are authored in `MapModules/heightMap/height_panel.tscn`; this
 ## script wires each one to a settings path in the shared settings Dictionary
 ## that `HeightFromDiffuse` reads when it generates. Every edit emits
-## `settings_changed`, `Set as Height Map` emits `apply_requested`, and
-## `color_pick_requested` asks the main scene to sample a colour from a preview.
+## `settings_changed` (the shell debounces and regenerates), `preview_changed`
+## for the reveal slider (preview only, no regeneration), `apply_requested` for
+## "Set as Height Map", and `color_pick_requested` asks the shell to sample a
+## colour from the source.
 ##
-## Deviations: Materialize draws at absolute pixel rects inside a 300x590
-## draggable window; Godot uses containers, so the groups can stretch. Materialize
-## shows the value of most sliders in a text field next to them
-## (`GuiHelper.Slider`); here every slider gets a value label.
+## Deviations from Unity: Materialize draws at absolute pixel rects inside a
+## draggable window; Godot uses containers, so the groups stretch. Materialize's
+## `GuiHelper.Slider` shows the value in an editable text field next to each
+## horizontal slider; here every slider gets a value label, including the
+## vertical faders, which have no text field in Unity.
+##
+## "Sample Spread" / "Sample Spread Boost" are Unity's Normal-mode sliders and
+## are not drawn: the Normal source comes with Normal From Height.
 
 signal settings_changed()
+signal preview_changed()
 signal apply_requested()
 signal color_pick_requested(sample_index: int)
 
-## Rows: [slider node path, settings path, value label node path].
-## The equalizer faders run coarse (Blur6) to fine (Blur0), left to right,
-## exactly as Materialize places them.
+## Rows: [slider node path, settings path, value label node path, preview-only].
+## The faders run coarse (Blur6, leftmost) to fine (Blur0, rightmost), exactly
+## as Materialize places them.
 const SLIDER_ROWS := [
-	["Column/RevealGroup/Reveal", ["reveal"], "Column/RevealGroup/RevealVal"],
+	["Column/RevealGroup/Reveal", ["reveal"], "Column/RevealGroup/RevealVal", true],
 
 	["Column/WeightGroup/Row/Faders/W6/Slider", ["weights", 6], "Column/WeightGroup/Row/Faders/W6/Val"],
 	["Column/WeightGroup/Row/Faders/W5/Slider", ["weights", 5], "Column/WeightGroup/Row/Faders/W5/Val"],
@@ -98,7 +105,8 @@ const PICK_ROWS := [
 	["Column/Sample2Group/Row/Left/Pick2", 2],
 ]
 
-## Rows: [button node path, settings key, preset name].
+## Rows: [button node path, settings key, preset name]. Labels are Materialize's
+## button strings: Default / Details / Displace and Default / Cracks / Funky.
 const PRESET_ROWS := [
 	["Column/WeightGroup/Row/Presets/Default", "weights", "default"],
 	["Column/WeightGroup/Row/Presets/Details", "weights", "detail"],
@@ -130,7 +138,7 @@ func setup(settings: Dictionary) -> void:
 func refresh() -> void:
 	_syncing = true
 	for row: Array in SLIDER_ROWS:
-		var slider: HSlider = get_node(row[0])
+		var slider: Slider = get_node(row[0])
 		slider.value = float(_value(row[1]))
 		get_node(row[2]).text = "%.2f" % slider.value
 	for row: Array in CHECK_ROWS:
@@ -146,7 +154,7 @@ func set_sample_color(sample_index: int, color: Color) -> void:
 
 func _ready() -> void:
 	for row: Array in SLIDER_ROWS:
-		(get_node(row[0]) as HSlider).value_changed.connect(_on_slider_changed.bind(row))
+		(get_node(row[0]) as Slider).value_changed.connect(_on_slider_changed.bind(row))
 	for row: Array in CHECK_ROWS:
 		(get_node(row[0]) as CheckBox).toggled.connect(_on_check_changed.bind(row))
 	for row: Array in COLOR_ROWS:
@@ -162,7 +170,13 @@ func _on_slider_changed(value: float, row: Array) -> void:
 		return
 	_assign(row[1], value)
 	get_node(row[2]).text = "%.2f" % value
-	if not _syncing:
+	if _syncing:
+		return
+	# The Height Reveal Slider is preview-only, so it does not need a
+	# regeneration: the shell re-blends the preview instead.
+	if row.size() > 3 and row[3]:
+		preview_changed.emit()
+	else:
 		settings_changed.emit()
 
 func _on_check_changed(toggled: bool, row: Array) -> void:
@@ -171,6 +185,8 @@ func _on_check_changed(toggled: bool, row: Array) -> void:
 	_assign(row[1], toggled)
 	if row[1][0] == "use_adjusted_diffuse" or row[1][0] == "use_original_diffuse" or row[1][0] == "use_normal":
 		_enforce_source_row()
+	else:
+		_enforce_isolate(row)
 	if not _syncing:
 		settings_changed.emit()
 
@@ -199,6 +215,21 @@ func _enforce_source_row() -> void:
 	_syncing = true
 	refresh()
 	_syncing = false
+
+## Unity's isolate rules (`HeightFromDiffuseGui.cs` lines 718-721, 755, 764-767,
+## 801): isolating one sample turns the other sample's isolate off, and
+## switching a sample off turns its own isolate off.
+func _enforce_isolate(row: Array) -> void:
+	var sample := String(row[1][0])
+	var isolate_key := String(row[1][1])
+	if isolate_key == "use":
+		if not bool(_settings[sample]["isolate"]):
+			return
+		_settings[sample]["isolate"] = false
+		return
+	if bool(_settings[sample]["isolate"]):
+		var other := "sample2" if sample == "sample1" else "sample1"
+		_settings[other]["isolate"] = false
 
 func _on_color_changed(color: Color, row: Array) -> void:
 	if _settings.is_empty():

@@ -8,8 +8,9 @@ next pass. Every tool is a `.cs` GUI panel (Unity `OnGUI` sliders) plus one or
 more `Blit_*.shader` fragment programs.
 
 This document explains the algorithm as the Unity source does it, and how the
-Godot port (`core/`, `shaders/`, `ui/`) reproduces it. The first ported tool is
-Height From Diffuse; the same pattern applies to every other tool.
+Godot port (`MapModules/`, `core/`, `shaders/`, `ui/`, `scenes/`) reproduces it.
+The first ported tool is Height From Diffuse, in `MapModules/heightMap/`; the same
+pattern applies to every other tool.
 
 ## 1. The blit architecture
 
@@ -54,8 +55,8 @@ and with `filter_linear` for the sub-pixel taps the blur kernels need.
 Unity: `Scripts/HeightFromDiffuseGui.cs` (`ProcessDiffuse()`), with
 `Shaders/Resources/Blit_Sample.shader` (colour sampling) and
 `Shaders/Resources/Blit_Shader.shader` (blur pass 1, combine pass 2).
-Godot: `core/height_from_diffuse.gd` + `shaders/height_from_diffuse.gdshader`,
-passes 0..3.
+Godot: `MapModules/heightMap/height_from_diffuse.gd` +
+`MapModules/heightMap/height_from_diffuse.gdshader`, passes 0..3.
 
 The core idea: **height is local relief, not brightness**. A photograph lit
 from one side has a big, slow luminance ramp across the frame. If you build a
@@ -171,20 +172,54 @@ Negative contrasts invert a level, which turns bumps into creases — Cracked Mu
 uses that to make the wide scales carve cracks while the sharp levels keep the
 surface relief.
 
-## 3. UI (Unity OnGUI → Godot Control)
+## 3. UI (Unity OnGUI → Godot Control + map box)
 
-`ui/height_panel.tscn` is a hand-authored panel: level weight sliders (0..2),
-level contrast sliders (-4..4), Output contrast/bias/gain, preset buttons, and
-two sample sections (Use / Isolate checkboxes, Pick button, compact
-`ColorPicker` swatch, hue/sat/lum weights, mask low/high, sample height, plus
-the shared SampleBlend slider). The panel edits the `HeightFromDiffuse.settings`
-`Dictionary` in place and emits `settings_changed`; the main scene debounces a
-`Timer` and regenerates. `Pick` asks the main scene to arm colour picking, then
-a click on the source preview reads the pixel from the working `Image` and
-feeds the sample colour.
+The app is laid out from `MainGui.cs`'s pixel rectangles: seven map boxes
+(`scenes/map_panel.tscn` + `ui/map_box.gd`, instanced as `MapPanel`..`MapPanel7`)
+in a row, each with a title, a 100×100 preview, `P` `C` `O` `S`, `Quick Save`,
+`Preview`, `Create` (Diffuse's button is `Edit`) and `Clear`; the saving box on
+the right holds the file format list (`BMP` `JPG` `PNG` `TGA` `TIFF`) and
+`Save all maps!`; the view-button row under the boxes is `Show full Material`,
+`next cube map`, `Tile maps`, `Clear all texture maps`; `Quit`,
+`Windowed`/`Full Screen`, `Make Suggestion` and `Hide Gui`/`Show Gui` sit in the
+corners. Materialize draws these with `GUI.Box`, `GUI.Label`, `GUI.Button`; Godot
+draws them with `PanelContainer`, `Label`, `Button`, in the same order
+(Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO).
 
-Unity regenerates on every slider change; the Godot app does the same through
-the debounce timer.
+`MapModules/heightMap/height_panel.tscn` + `.gd` is the Height tool panel, laid
+out like `HeightFromDiffuseGui.cs`: the source row (`Diffuse` / `Original
+Diffuse` / `Normal` as a 3-way radio), `Height Reveal Slider` (0..1),
+`Frequency Weight Equalizer` with `Default` / `Details` / `Displace` and 7
+vertical faders (0..1, drawn Blur6 → Blur0), `Frequency Contrast Equalizer` with
+`Default` / `Cracks` / `Funky` and 7 faders (-5..5), the two colour sample
+sections (`Use Color Sample 1/2`, `Isolate Mask` — mutually exclusive, as in
+Unity, `Pick Color`, a compact `ColorPicker` swatch, and `Hue` / `Sat` / `Lum` /
+`Low` / `High` / `Height` faders), `Sample Blend`, `Final Gain` (-0.5..0.5),
+`Final Contrast` (-10..10), `Final Bias` (-1..1), and `Set as Height Map`. The
+panel edits the `HeightFromDiffuse.settings` `Dictionary` in place and emits
+`settings_changed`; the shell debounces a `Timer` and regenerates. Unity draws 8
+`-` markers on the contrast zero line; the panel leaves them out, since Godot has
+no equivalent decoration.
+
+The Reveal slider emits `preview_changed` instead of `settings_changed`, because
+it is a preview control: the shell writes the mesh material's `reveal` uniform,
+so dragging it costs no pass. `Pick Color` asks the shell to arm colour sampling;
+the map box preview forwards clicks as `preview_clicked` with the UV inside the
+drawn image, and the shell reads that pixel from the working image. Materialize
+raycasts the 3D test mesh for the same job; the box UV is the port's path.
+
+Unity regenerates on every slider change; the Godot app does the same through the
+debounce timer.
+
+The module contract (`MapModules/map_module.gd`) is what keeps a panel from
+touching shared state: a module exposes `map_type()`, `map_title()`,
+`save_suffix()`, `settings()`, `panel_scene()`, `generate(source, blit)`,
+`preview(map)`, `create_available(maps)`, `set_map()`, `clear_map()`, plus
+`settings_changed` and `map_changed`. The shell owns the `Blit` node, the source
+image, the map store, the panel slot, and the mesh. Clicking a box's `Create`
+makes that map active: its panel is swapped into `UI/MapOptionsPanel/PanelSlot`,
+its map goes onto the mesh, and the unported maps' `Create` buttons are disabled
+with the status line naming the Unity file each one still needs.
 
 ## 4. Data space, and why gamma is dropped
 
@@ -203,47 +238,68 @@ with Unity was explicitly not a goal.
 - **"Use Normal as input"** for the height tool (Unity's `ProcessNormal()` and
   the Spread / SpreadBoost normal path, `_HeightFromNormal`). The Godot app has
   no normal map source yet; this returns when Normal From Height is ported.
-- **Preview on a 3D mesh**: Materialize renders the maps on a test object with
-  the DNMST preview shader. The Godot preview is two flat `TextureRect`s
-  (source, result); DNMST comes later.
+- **Preview on a 3D mesh**: the map box previews and the `MeshInstance3D` show the
+  live map. The mesh material (`shaders/mesh_preview.gdshader`) mixes the map
+  towards mid-grey by the Height Reveal Slider, so dragging the slider costs no
+  pass. Materialize renders every map on a test object with the DNMST preview
+  shader and cubemap lighting; the port applies one map at a time with a plain
+  `shader_type spatial` material, so DNMST, the cubemap cycling (`next cube map`)
+  and the FBX test meshes are still deferred.
 - **Export formats**: Godot saves PNG, JPG, WebP. BMP / TIFF / TGA need a
-  custom writer; deferred.
+  custom writer, so the saving box writes PNG and the status line says so. Unity
+  used `FreeImage.dll` for those formats.
 - **Project save/load** (Unity XML → `ConfigFile`/JSON): deferred.
 - **Stock maps, cubemaps, FBX meshes, PSD icons**: not copied from the Unity
   repo. FBX cannot be imported by Godot (needs a `.glb` conversion), PSD icons
   need PNG conversion. A procedural stone test pattern (`core/test_pattern.gd`)
   stands in for a source image.
 
-## 6. Files in this commit
+## 6. Files in the port
 
-- `core/blit.gd` — the pass framework (setup, blit, blit chain, flat, format
-  helpers).
-- `shaders/height_from_diffuse.gdshader` — passes 0 SAMPLE, 1 BLUR, 2 COMBINE,
-  3 AVG; HSL sampling, raised-cosine separable blur, combine math.
-- `core/height_from_diffuse.gd` — settings dict, presets, gain mapping, the
-  generate coroutine (sample → pyramid → avg → combine).
-- `core/test_pattern.gd` — procedural stone wall source (mortar, per-brick
-  tone, bevel at joints, grain, top-down lighting gradient) so the average
-  subtraction can be tested without loading a photo.
-- `ui/height_panel.gd` + `ui/height_panel.tscn` — the control panel.
-- `scripts/main.gd` + `scenes/main.tscn` — toolbar (load, test pattern,
-  resolution 512/1024/2048/source, generate, save), source/result previews,
-  colour picking, debounce timer, the tool roadmap.
+- `MapModules/map_module.gd` — the module contract, shared by every map module.
+- `MapModules/heightMap/height_from_diffuse.gdshader` — passes 0 SAMPLE, 1 BLUR,
+  2 COMBINE, 3 AVG; HSL sampling, raised-cosine separable blur, combine math.
+- `MapModules/heightMap/height_from_diffuse.gd` — settings dict, presets, gain
+  mapping, the generate coroutine (sample → pyramid → avg → combine).
+- `MapModules/heightMap/height_panel.gd` + `height_panel.tscn` — the Height tool
+  panel, laid out like `HeightFromDiffuseGui.cs`.
+- `MapModules/heightMap/height_map_module.gd` — binds the generator and the panel
+  to the module contract.
+- `core/blit.gd` — the pass framework (setup, blit, flat, format helpers).
+- `core/test_pattern.gd` — procedural stone wall source (mortar, per-brick tone,
+  bevel at joints, grain, top-down lighting gradient) so the average subtraction
+  can be tested without loading a photo.
+- `shaders/mesh_preview.gdshader` — the mesh preview material (`map` + `reveal`).
+- `ui/map_box.gd` + `scenes/map_panel.tscn` — the generic map box (title,
+  preview, `P` `C` `O` `S`, Quick Save, Preview, Create, Clear) and its
+  `preview_clicked` UV forwarding.
+- `scenes/main.tscn` + `scripts/main.gd` — the app shell: the box row, the panel
+  slot, the mesh, the load / save / save-all dialogs, the port-only toolbar (load
+  diffuse, stone pattern, resolution, generate, save, status), colour picking,
+  the debounce timer, and the roadmap print.
+- `scenes/save_panel.tscn` — the saving box (file format + `Save all maps!`).
 - `tests/blit_probe.gd` + `tests/probe.gdshader` + `tests/blit_probe.tscn` —
   readback, HDR, repeat-wrap, blur-kernel probe.
-- `tests/height_test.gd` + `tests/height_test.tscn` — end-to-end run on the
-  stone pattern, writing PNGs and statistics.
+- `tests/height_test.gd` + `tests/height_test.tscn` — end-to-end run on the stone
+  pattern, writing PNGs and statistics.
 - `tests/height_cpu.gd` + `tests/height_cpu.tscn` — CPU-only reference
   implementation of the whole pipeline (no GPU, no VRAM), used to validate the
   math and to provide a reference image for the GPU result.
+- `tests/live_preview.gd` + `tests/live_preview.tscn` — drives the real app:
+  checks the map on the mesh, the reveal uniform, the
+  preset → debounce → pass chain → box preview chain, the map checksum, and saves
+  a window screenshot.
 
 ## 7. Testing status
 
-The user's machine has no VRAM headroom, so **no GPU pass has been executed
-yet**. What is verified:
+The GPU passes have been run on the user's machine (Vulkan 1.4.341, Forward Plus,
+NVIDIA RTX 3080). What is verified:
 
-- `godot --headless --import --path .` and `godot --headless --quit --path .`
-  run clean (scripts parse, scenes load, the panel syncs, the roadmap prints).
+- `godot --headless --path . --import`, `godot --path . --headless --quit`, and
+  `godot --headless -e --path . --quit` run clean (scripts parse, scenes load, the
+  Height panel instantiates in `MapOptionsPanel` with every node path resolving,
+  and the roadmap prints). A headless run skips the pass chain, because the
+  headless display server cannot render the `SubViewport` quad.
 - **The algorithm itself, on the CPU.** `tests/height_cpu.tscn` is a pure
   GDScript reference implementation of all four stages — grey base, the
   raised-cosine separable pyramid, the wide average map, the combine. It uses
@@ -263,23 +319,32 @@ yet**. What is verified:
   mortar 0.487  brick centres 0.503                  joints read as recessed
   ```
 
-  This is the test that found the missing `+ 0.5` per level described in
-  Stage 4 — the bug that made the height map come out pure black in the app.
+  This is the test that found the missing `+ 0.5` per level described in Stage 4 —
+  the bug that made the height map come out pure black in the app.
+- **The framework, on the GPU** (`tests/blit_probe.tscn`): 8-bit and HDR readback
+  are exact, `FORMAT_RGBAF` keeps values above 1.0 (`1.25, 0.625, 0.0`), repeat
+  wrap samples the opposite edge, and the separable blur spreads the marker with
+  the centre tap dominant.
+- **The generator, on the GPU** (`tests/height_test.tscn`, 1024²):
 
-What is not verified: shader compilation, HDR readback, repeat wrap, blur tap
-behaviour, and the visual result.
+  ```
+  source: min 0.214 max 0.666 mean 0.433
+  result: min 0.357 max 0.637 mean 0.498   format RGBAF, 1024 x 1024
+  ```
 
-Run these when VRAM has headroom, in this order:
+  The mean matches the CPU reference exactly (0.498); min/max differ by about
+  0.05, which is the CPU reference approximating the shader's edge-tap window
+  fade. The stone result is centred on neutral with no clipping, so the average
+  subtraction and the combine are working on the GPU.
+- **The live app chain** (`tests/live_preview.tscn`, which instantiates the real
+  `scenes/main.tscn`): the generated map lands on the `MeshInstance3D` material
+  (1024×1024); the Height Reveal Slider writes `settings["reveal"]` and the mesh
+  material's `reveal` uniform with no pass chain; the `Details` weight preset
+  writes `settings["weights"] = [0.7, 0.4, 0.3, 0.5, 0.8, 0.9, 0.7]` and the fader
+  values, fires the debounce, runs the pass chain, updates the map box preview,
+  and moves the map checksum (0.251124 → 0.251701) — which is what proves the
+  weight uniforms reached the shader. `user://live_preview_window.png` is a
+  screenshot of the running app for eyeballing.
 
-```
-DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe
-DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes user://height_test/*.png
-godot --path .                                           # the app
-```
-
-The probe prints expected values for each pass; the height test prints source
-and result statistics (min / max / mean) so a broken pass shows up as a flat
-mean, a mean pinned at 0.5, or NaN. In the app, the stone pattern plus default
-settings should show joints as raised lines with a grainy brick surface, and
-the top-down lighting gradient should be gone. The GPU result should be close
-to `user://height_cpu/result.png`, the CPU reference.
+What is not verified: the visual result of the height map on the mesh (the
+screenshot needs a human eye), and everything that depends on unported maps.

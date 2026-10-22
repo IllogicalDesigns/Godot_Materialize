@@ -1,150 +1,437 @@
-extends Control
+extends Node3D
 ## Shell for the Godot port of Materialize (Unity sample project, Unity
 ## Technologies 2013, GPLv3). Materialize builds PBR texture maps from a source
 ## image using GPU "blit" passes. See README.md for the Unity -> Godot mapping
 ## and docs/how_materialize_works.md for the algorithm.
 ##
-## The window is: source preview (clickable for colour picking), result preview,
-## the tool panel, load / test pattern / resolution / generate / save.
-## Height From Diffuse is the first tool wired in.
+## The shell owns the shared state: the `Blit` framework, the map store
+## (`maps`), the source diffuse, the map box row, the tool panel slot
+## (`UI/MapOptionsPanel/PanelSlot`), and the 3D preview mesh. Each texture map
+## lives in its own module under `MapModules/` - see `MapModules/map_module.gd`.
+## Only Height is ported so far; its module is `MapModules/heightMap/`.
+##
+## Clicking a box's Create button makes that map active: its panel slots into
+## `MapOptionsPanel`, its map feeds the `MeshInstance3D` preview, and the mesh
+## updates live as the sliders move.
+##
+## The window is Materialize's layout (`MainGui.cs` lines 485-1288): the map box
+## row, the saving options box, the 3D preview filling the rest of the window,
+## and the view-button row under the boxes. Buttons that depend on unported
+## tools report themselves in the status label.
 
 const UNITY_SOURCE := "/home/tiny/AI/materialize/Materialize"
 
-## One row per Unity tool panel, in the order we plan to port it.
-## `status` is updated as each tool is ported.
-const GENERATORS: Array[Dictionary] = [
-	{
-		"tool": "Blit framework",
-		"unity": "Graphics.Blit + RenderTexture + Hidden/Blit_Shader",
-		"target": "core/blit.gd + canvas_item shader passes",
-		"status": "done",
-	},
-	{
-		"tool": "Height From Diffuse",
-		"unity": "Scripts/HeightFromDiffuseGui.cs + Shaders/Resources/Blit_Sample.shader + Blit_Shader.shader",
-		"target": "core/height_from_diffuse.gd + shaders/height_from_diffuse.gdshader",
-		"status": "ported (first tool)",
-	},
-	{
-		"tool": "Normal From Height",
-		"unity": "Scripts/NormalFromHeightGui.cs + Shaders/Resources/Blit_Normal_From_Height.shader",
-		"target": "core/normal_from_height.gd + shaders/normal_from_height.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Edge From Normal",
-		"unity": "Scripts/EdgeFromNormalGui.cs + Shaders/Resources/Blit_Edge_From_Normal.shader",
-		"target": "core/edge_from_normal.gd + shaders/edge_from_normal.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "AO From Normal",
-		"unity": "Scripts/AOFromNormalGui.cs + Shaders/AO_From_Normal_Preview.shader",
-		"target": "core/ao_from_normal.gd + shaders/ao_from_normal.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Metallic",
-		"unity": "Scripts/MetallicGui.cs + Shaders/Resources/Blit_Metallic.shader",
-		"target": "core/metallic.gd + shaders/metallic.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Smoothness",
-		"unity": "Scripts/SmoothnessGui.cs + Shaders/Resources/Blit_Smoothness.shader",
-		"target": "core/smoothness.gd + shaders/smoothness.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Edit Diffuse",
+## Materialize's box row, in `MainGui.cs` draw order (lines 496-1050):
+## Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO, each a 110x250 box
+## with a 100x100 preview. The Diffuse box's create button is labelled "Edit".
+const MAP_BOXES: Array[Dictionary] = [
+	{"type": "height", "title": "Height Map", "create": "Create",
+		"unity": "Scripts/HeightFromDiffuseGui.cs + Shaders/Resources/Blit_Sample.shader",
+		"module": "MapModules/heightMap/", "status": "ported (first tool)"},
+	{"type": "diffuse", "title": "Diffuse Map", "create": "Edit",
 		"unity": "Scripts/EditDiffuseGui.cs + Shaders/Edit_Diffuse_Preview.shader",
-		"target": "core/edit_diffuse.gd + shaders/edit_diffuse.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Alignment",
-		"unity": "Scripts/AlignmentGui.cs + Shaders/Resources/Blit_Alignment.shader",
-		"target": "core/alignment.gd + shaders/alignment.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Seamless Tiling",
-		"unity": "Scripts/TilingTextureMakerGui.cs + Shaders/Resources/Blit_Seamless_Texture_Maker.shader",
-		"target": "core/seamless_tiling.gd + shaders/seamless_tiling.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Post Process",
-		"unity": "PostProcess/PostProcess.cs + PostProcess/Resources/HiddenPostProcess.shader",
-		"target": "core/post_process.gd + shaders/post_process.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Material Preview (DNMST)",
-		"unity": "Scripts/MaterialGui.cs + Shaders/DNMST.shader",
-		"target": "core/material_preview.gd + shaders/dnmst.gdshader",
-		"status": "not started",
-	},
-	{
-		"tool": "Save / Load Project",
-		"unity": "Scripts/SaveLoadProject.cs",
-		"target": "core/project_io.gd",
-		"status": "not started",
-	},
+		"module": "MapModules/diffuseMap/", "status": "not started"},
+	{"type": "normal", "title": "Normal Map", "create": "Create",
+		"unity": "Scripts/NormalFromHeightGui.cs + Shaders/Resources/Blit_Normal_From_Height.shader",
+		"module": "MapModules/normalMap/", "status": "not started"},
+	{"type": "metallic", "title": "Metallic Map", "create": "Create",
+		"unity": "Scripts/MetallicGui.cs + Shaders/Resources/Blit_Metallic.shader",
+		"module": "MapModules/metallicMap/", "status": "not started"},
+	{"type": "smoothness", "title": "Smoothness Map", "create": "Create",
+		"unity": "Scripts/SmoothnessGui.cs + Shaders/Resources/Blit_Smoothness.shader",
+		"module": "MapModules/smoothnessMap/", "status": "not started"},
+	{"type": "edge", "title": "Edge Map", "create": "Create",
+		"unity": "Scripts/EdgeFromNormalGui.cs + Shaders/Resources/Blit_Edge_From_Normal.shader",
+		"module": "MapModules/edgeMap/", "status": "not started"},
+	{"type": "ao", "title": "AO Map", "create": "Create",
+		"unity": "Scripts/AOFromNormalGui.cs + Shaders/AO_From_Normal_Preview.shader",
+		"module": "MapModules/aoMap/", "status": "not started"},
 ]
 
-@onready var _panel: VBoxContainer = $Split/Scroll/Panel
-@onready var _source_rect: TextureRect = $Split/Left/SourceRect
-@onready var _result_rect: TextureRect = $Split/Left/ResultRect
-@onready var _status: Label = $Split/Left/Toolbar/Status
-@onready var _resolution: OptionButton = $Split/Left/Toolbar/Resolution
+## The boxes in `scenes/main.tscn`, in the same order as MAP_BOXES.
+const BOX_NODE_NAMES := ["MapPanel", "MapPanel2", "MapPanel3", "MapPanel4",
+	"MapPanel5", "MapPanel6", "MapPanel7"]
+
+@onready var _mesh: MeshInstance3D = $MeshInstance3D
+@onready var _panel_slot: VBoxContainer = $UI/MapOptionsPanel/PanelSlot
+@onready var _status: Label = $UI/MapsAnd3DFunctions/Toolbar/Status
+@onready var _resolution: OptionButton = $UI/MapsAnd3DFunctions/Toolbar/Resolution
 @onready var _load_dialog: FileDialog = $LoadDialog
 @onready var _save_dialog: FileDialog = $SaveDialog
-@onready var _timer: Timer = $Timer
+@onready var _save_all_dialog: FileDialog = $SaveAllDialog
+@onready var _debounce: Timer = $DebounceTimer
+@onready var _save_panel: PanelContainer = $UI/MapsAnd3DFunctions/Maps/SavePanel
 
 var blit: Blit
-var tool: HeightFromDiffuse
 
-## The source image in its original 8-bit form, so resolution changes can
-## re-derive the working copy without compounding resizes.
-var _source_original: Image
-var source_image: Image
-var result_image: Image
+## The map store, the app's source of truth: map_type -> Image, null when empty.
+## The source diffuse lives here too, so Materialize's rule that maps are
+## derived from the loaded image holds, and "Clear" can free any map.
+var maps: Dictionary = {}
 
+## map_type -> MapModule, for the tools that are ported. Unported maps have no
+## module, so their Create button is disabled.
+var modules: Dictionary = {}
+
+## map_type -> MapBox, and map_type -> panel, so each box's preview and panel
+## can be refreshed without searching the tree.
+var _boxes: Dictionary = {}
+var _panels: Dictionary = {}
+
+var _active: MapModule
+var _mesh_map: String = ""
+var _pick_sample := 0
 var _busy := false
 var _dirty := false
-## Which sample colour slot is waiting for a click on the source preview (0 = none).
-var _pick_sample := 0
 var _working_size := 1024
+var _source_original: Image
+var _save_type: String = ""
+var _load_type: String = ""
+
+## The 3D preview material (`shaders/mesh_preview.gdshader`): `map` is the
+## previewed map, `reveal` is the Height Reveal Slider.
+const MESH_SHADER_PATH := "res://shaders/mesh_preview.gdshader"
+
+var _mesh_material: ShaderMaterial
+## Flat grey texture used when a map is cleared, so the mesh does not go black.
+var _neutral: ImageTexture
 
 func _ready() -> void:
 	# Report the roadmap to stdout so headless runs stay useful.
-	for row in GENERATORS:
-		print("[materialize] %s -> %s [%s]" % [row["tool"], row["target"], row["status"]])
+	for row in MAP_BOXES:
+		print("[materialize] %s -> %s [%s]" % [row["unity"], row["module"], row["status"]])
 
 	blit = Blit.new()
 	add_child(blit)
 
-	tool = HeightFromDiffuse.new()
-	_panel.setup(tool.settings)
+	_mesh_material = ShaderMaterial.new()
+	_mesh_material.shader = load(MESH_SHADER_PATH)
+	_mesh_material.set_shader_parameter("roughness", 0.6)
+	_neutral = _flat_texture(0.5)
+	_mesh_material.set_shader_parameter("map", _neutral)
+	_mesh_material.set_shader_parameter("reveal", 1.0)
+	_mesh.material_override = _mesh_material
+
+	for row in MAP_BOXES:
+		maps[row["type"]] = null
+
+	modules["height"] = _add_height_module()
+
+	for index in MAP_BOXES.size():
+		var spec: Dictionary = MAP_BOXES[index]
+		var box: MapBox = get_node("UI/MapsAnd3DFunctions/Maps/" + BOX_NODE_NAMES[index])
+		box.map_type = spec["type"]
+		box.title = spec["title"]
+		box.create_label = spec["create"]
+		# map_box.gd reads title and create_label in its _ready, which has
+		# already run for the instanced boxes, so re-apply them here.
+		box.set_labels(spec["title"], spec["create"])
+		_boxes[spec["type"]] = box
+		box.button_pressed.connect(_on_box_button)
+		box.preview_clicked.connect(_on_preview_clicked)
+
+	_refresh_box_buttons()
 
 	_resolution.add_item("512", 512)
 	_resolution.add_item("1024", 1024)
 	_resolution.add_item("2048", 2048)
 	_resolution.add_item("Source size", 0)
 	_resolution.selected = 1
+	_debounce.wait_time = 0.15
 
-	_status.text = "Load a diffuse image, or use the stone test pattern."
+	_wire_ui()
+
+	# Height is the only ported tool, so it is active from the start and its
+	# panel is already in MapOptionsPanel.
+	_activate(modules["height"])
+
+	# The pass framework needs a real GPU: a headless run cannot render the
+	# SubViewport quad, so headless stays a parse/import check with no passes.
+	if DisplayServer.get_name() == "headless":
+		_set_status("Headless run: the map modules are loaded, no GPU passes ran.")
+		return
+
+	# Start with the procedural stone wall so the mesh and the height map show
+	# live output immediately, with no assets needed.
+	_set_source(TestPattern.stone(Vector2i(_working_size, _working_size)))
+
+## Wiring the buttons Materialize draws (`MainGui.cs`), so the scene stays free
+## of connection blocks and every handler is visible in one place. The map box
+## signals are wired per box in `_ready`.
+func _wire_ui() -> void:
+	var toolbar: Control = $UI/MapsAnd3DFunctions/Toolbar
+	(toolbar.get_node("LoadDiffuse") as Button).pressed.connect(_on_load_pressed)
+	(toolbar.get_node("StonePattern") as Button).pressed.connect(_on_pattern_pressed)
+	(toolbar.get_node("Resolution") as OptionButton).item_selected.connect(_on_resolution_selected)
+	(toolbar.get_node("Generate") as Button).pressed.connect(_on_generate_pressed)
+	(toolbar.get_node("SavePNG") as Button).pressed.connect(_on_save_pressed)
+
+	(_save_panel.get_node("VBoxContainer/Button") as Button).pressed.connect(_on_save_all_pressed)
+
+	_load_dialog.file_selected.connect(_on_load_file_selected)
+	_save_dialog.file_selected.connect(_on_save_file_selected)
+	_save_all_dialog.dir_selected.connect(_on_save_all_dir_selected)
+	_debounce.timeout.connect(_on_debounce_timeout)
+
+	# The node is named "3DViewFunctions" (`MainGui.cs`'s view-button row), and a
+	# name starting with a digit cannot be written in a $ path, so use get_node.
+	var view: Control = get_node("UI/MapsAnd3DFunctions/3DViewFunctions")
+	(view.get_node("ShowFullMaterial") as Button).pressed.connect(_on_show_full_material_pressed)
+	(view.get_node("NextCubeMap") as Button).pressed.connect(_on_next_cube_map_pressed)
+	(view.get_node("TileMaps") as Button).pressed.connect(_on_tile_maps_pressed)
+	(view.get_node("ClearAllTextureMaps") as Button).pressed.connect(_on_clear_all_pressed)
+
+	($UI/LowerRightButtons/ToggleFullscreen as Button).pressed.connect(_on_fullscreen_pressed)
+	($UI/LowerRightButtons/Quit as Button).pressed.connect(_on_quit_pressed)
+	($UI/UpperRightButtons/MakeSuggestion as Button).pressed.connect(_on_make_suggestion_pressed)
+	($UI/UpperRightButtons/HideGui as Button).pressed.connect(_on_hide_gui_pressed)
+
+func _add_height_module() -> MapModule:
+	var module := HeightMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
+## Make one map active: its panel goes into `MapOptionsPanel`, and its map goes
+## onto the mesh. Panels are built once and reused, so slider state survives
+## switching maps.
+func _activate(module: MapModule) -> void:
+	_active = module
+	_mesh_map = module.map_type()
+
+	var panel: Control = _panels.get(module.map_type())
+	if panel == null:
+		panel = module.panel_scene().instantiate()
+		_panels[module.map_type()] = panel
+		# The panel contract is setup() plus settings_changed / apply_requested /
+		# color_pick_requested. The calls use the string API so the shell is not
+		# typed to any one panel, and a new map module can add extra signals.
+		panel.call("setup", module.settings())
+		panel.connect("settings_changed", _on_settings_changed)
+		panel.connect("apply_requested", _on_apply_requested)
+		panel.connect("color_pick_requested", _on_pick_requested)
+		if panel.has_signal("preview_changed"):
+			panel.connect("preview_changed", _on_preview_changed)
+
+	for child in _panel_slot.get_children():
+		_panel_slot.remove_child(child)
+		child.queue_free()
+	_panel_slot.add_child(panel)
+	_set_mesh_map(_mesh_map)
+	_set_reveal()
+
+func _generate() -> void:
+	if _busy:
+		return
+	if _active == null:
+		_set_status("Pick a map box to work on.")
+		return
+	if maps["diffuse"] == null:
+		_set_status("Load a diffuse image, or press the stone test pattern.")
+		return
+
+	_busy = true
+	var source: Image = maps["diffuse"]
+	var size := source.get_size()
+	_set_status("Generating %d x %d..." % [size.x, size.y])
+
+	await _active.generate(source, blit)
+
+	_busy = false
+	_set_status("%s ready: %d x %d" % [_active.map_title(), size.x, size.y])
+
+	if _dirty:
+		_dirty = false
+		_generate()
+
+## The module finished a pass chain. Repaint the box preview and, when the map
+## is the one on the mesh, the mesh itself.
+func _on_map_changed(map_type: String, image: Image) -> void:
+	maps[map_type] = image
+	var module: MapModule = modules.get(map_type)
+	var display: Image = module.preview(image) if module != null else image
+	if _boxes.has(map_type):
+		(_boxes[map_type] as MapBox).set_image(display)
+	if map_type == _mesh_map:
+		_set_mesh_texture(display)
+	_refresh_box_buttons()
+
+func _set_mesh_texture(image: Image) -> void:
+	if image == null:
+		_mesh_material.set_shader_parameter("map", _neutral)
+		return
+	_mesh_material.set_shader_parameter("map", ImageTexture.create_from_image(Blit.to_display(image)))
+
+## A 1x1 texture filled with one value. The mesh samples it when a map is
+## cleared, so the preview stays neutral grey instead of going black on a null
+## texture.
+func _flat_texture(value: float) -> ImageTexture:
+	var image := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
+	image.fill(Color(value, value, value, 1.0))
+	return ImageTexture.create_from_image(image)
+
+## Which map the mesh shows. Materialize's "Preview" button applies a map to the
+## test object, so the box's Preview button is what selects it.
+func _set_mesh_map(map_type: String) -> void:
+	_mesh_map = map_type
+	var module: MapModule = modules.get(map_type)
+	var image: Image = maps.get(map_type)
+	if image == null:
+		_set_mesh_texture(null)
+	else:
+		_set_mesh_texture(module.preview(image) if module != null else image)
+
+## Sliders write into the module's settings Dictionary; debounce so dragging a
+## fader does not fire a pass chain every 0.01.
+func _on_settings_changed() -> void:
+	_dirty = true
+	_debounce.start()
+
+func _on_debounce_timeout() -> void:
+	if _busy:
+		return
+	if _dirty:
+		_dirty = false
+		_generate()
+
+## The Height Reveal Slider is a preview control on the mesh material, so it is
+## a uniform write: no pass, no CPU loop, and dragging it updates the mesh every
+## frame. Materialize's `HFDS.Slider` is applied to the preview material the
+## same way, and it is not part of the saved settings.
+func _on_preview_changed() -> void:
+	_set_reveal()
+
+func _set_reveal() -> void:
+	var reveal := 1.0
+	if _active != null:
+		reveal = clampf(float(_active.settings().get("reveal", 1.0)), 0.0, 1.0)
+	_mesh_material.set_shader_parameter("reveal", reveal)
+
+func _on_apply_requested() -> void:
+	_dirty = false
+	_generate()
+
+func _on_box_button(action: String, map_type: String) -> void:
+	var module: MapModule = modules.get(map_type)
+	match action:
+		"create":
+			if module == null:
+				_not_ported(map_type)
+				return
+			_activate(module)
+			_generate()
+		"preview":
+			_set_mesh_map(map_type)
+			_set_status("Showing %s on the mesh." % map_type)
+		"clear":
+			if module != null:
+				module.clear_map()
+			else:
+				maps[map_type] = null
+				_on_map_changed(map_type, null)
+			if map_type == _mesh_map:
+				_set_mesh_texture(null)
+		"open":
+			_load_type = map_type
+			_load_dialog.title = "Open %s" % (module.map_title() if module != null else map_type)
+			_load_dialog.show()
+		"save":
+			if maps.get(map_type) == null:
+				_set_status("Nothing to save for %s yet." % map_type)
+				return
+			_save_type = map_type
+			_save_dialog.title = "Save %s" % (module.map_title() if module != null else map_type)
+			_save_dialog.show()
+		"paste", "copy":
+			_set_status("Clipboard is not ported yet (%s)." % map_type)
+		_:
+			_set_status("Unknown action %s." % action)
+
+## Materialize greys out a box's Create button when its inputs are missing
+## (`GUI.enabled`). Unported maps are disabled; ported maps check their inputs.
+func _refresh_box_buttons() -> void:
+	for row in MAP_BOXES:
+		var map_type: String = row["type"]
+		var box: MapBox = _boxes[map_type]
+		var module: MapModule = modules.get(map_type)
+		box.set_button_enabled("create", module != null and module.create_available(maps))
+		box.set_button_enabled("save", maps.get(map_type) != null)
+		box.set_button_enabled("clear", maps.get(map_type) != null)
+		box.set_button_enabled("preview", maps.get(map_type) != null)
+		box.set_button_enabled("quick_save", maps.get(map_type) != null)
+		box.set_button_enabled("paste", false)
+		box.set_button_enabled("copy", false)
+
+func _not_ported(map_type: String) -> void:
+	for row in MAP_BOXES:
+		if row["type"] == map_type:
+			_set_status("%s is not ported yet: %s" % [map_type, row["unity"]])
+			return
+
+## The status label is mirrored to stdout, so a headless run and a run from a
+## terminal report what the pass pipeline is doing. Materialize's window has no
+## status line, so both the label and the print are port-only aids.
+func _set_status(text: String) -> void:
+	_status.text = text
+	print("[materialize] ", text)
+
+## The panel asked for a colour from the source. Materialize raycasts the 3D
+## test mesh for this; here the click comes from the Diffuse box's preview,
+## which forwards the UV inside the drawn image.
+func _on_pick_requested(sample_index: int) -> void:
+	_pick_sample = sample_index
+	_set_status("Click the colour in the Diffuse preview for sample %d." % sample_index)
+
+func _on_preview_clicked(map_type: String, uv: Vector2) -> void:
+	if _pick_sample == 0:
+		return
+	if map_type != "diffuse":
+		_set_status("Colour picking reads the Diffuse preview.")
+		return
+	var source: Image = maps["diffuse"]
+	if source == null:
+		return
+	var size := source.get_size()
+	var x := clampi(int(uv.x * float(size.x)), 0, size.x - 1)
+	var y := clampi(int(uv.y * float(size.y)), 0, size.y - 1)
+	var picked: Color = source.get_pixel(x, y)
+	var sample_index := _pick_sample
+	_pick_sample = 0
+	var panel: Control = _panels[_active.map_type()]
+	if panel.has_method("set_sample_color"):
+		panel.call("set_sample_color", sample_index, picked)
+	_generate()
+
+## original: the image as loaded (8-bit), or a procedurally generated float
+## image. The working copy is derived from it, so resolution changes re-derive
+## instead of compounding resizes.
+func _set_source(original: Image) -> void:
+	_source_original = original
+	var working := original.duplicate()
+	if _working_size > 0:
+		working.resize(_working_size, _working_size, Image.INTERPOLATE_CUBIC)
+	maps["diffuse"] = Blit.to_float(working)
+	(_boxes["diffuse"] as MapBox).set_image(maps["diffuse"])
+	_generate()
 
 func _on_load_pressed() -> void:
+	_load_type = "diffuse"
+	_load_dialog.title = "Load a diffuse image"
 	_load_dialog.show()
 
 func _on_load_file_selected(path: String) -> void:
 	var image: Image = Image.load_from_file(path)
 	if image == null:
-		_status.text = "Could not load %s" % path
+		_set_status("Could not load %s" % path)
 		return
-	_set_source(image)
+	if _load_type == "diffuse":
+		_set_source(image)
+		return
+	# Opening a map into a box stores it as that map, so it can be previewed and
+	# used as a pass input later. The map store is float everywhere, so the
+	# loaded image goes through `to_float` before it is stored.
+	var working: Image = Blit.to_float(image)
+	_on_map_changed(_load_type, working)
 
 func _on_pattern_pressed() -> void:
 	var size := _working_size if _working_size > 0 else 1024
@@ -159,90 +446,105 @@ func _on_generate_pressed() -> void:
 	_dirty = false
 	_generate()
 
-func _on_settings_changed() -> void:
-	_dirty = true
-	_timer.start()
-
-func _on_timer_timeout() -> void:
-	if _busy:
-		return
-	if _dirty:
-		_dirty = false
-		_generate()
-
-func _on_pick_requested(sample_index: int) -> void:
-	_pick_sample = sample_index
-	_status.text = "Click a colour in the source preview for sample %d." % sample_index
-
-func _on_source_gui_input(event: InputEvent) -> void:
-	if _pick_sample == 0 or source_image == null:
-		return
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
-		return
-	if _source_rect.texture == null:
-		return
-
-	# The preview keeps the image's aspect ratio and centres it, so the click
-	# has to be mapped through the drawn rectangle, not the control rectangle.
-	var texture_size := Vector2(_source_rect.texture.get_size())
-	var rect := _source_rect.size
-	var scale := minf(rect.x / texture_size.x, rect.y / texture_size.y)
-	var drawn := texture_size * scale
-	var local: Vector2 = event.position - (rect - drawn) * 0.5
-	if local.x < 0.0 or local.y < 0.0 or local.x > drawn.x or local.y > drawn.y:
-		return
-
-	var sample_index := _pick_sample
-	var size := source_image.get_size()
-	var uv: Vector2 = local / drawn
-	var x := clampi(int(uv.x * float(size.x)), 0, size.x - 1)
-	var y := clampi(int(uv.y * float(size.y)), 0, size.y - 1)
-	var picked: Color = source_image.get_pixel(x, y)
-	_pick_sample = 0
-	_panel.set_sample_color(sample_index, picked)
-	_generate()
-
 func _on_save_pressed() -> void:
-	if result_image == null:
-		_status.text = "Nothing to save yet."
+	if maps.get(_mesh_map) == null:
+		_set_status("Nothing to save yet.")
 		return
+	_save_type = _mesh_map
 	_save_dialog.show()
 
 func _on_save_file_selected(path: String) -> void:
-	var display := Blit.to_display(result_image)
+	var image: Image = maps.get(_save_type)
+	if image == null:
+		_set_status("Nothing to save for %s." % _save_type)
+		return
+	var display := Blit.to_display(image)
 	var error := display.save_png(path)
 	if error == OK:
-		_status.text = "Saved %s" % path
+		_set_status("Saved %s" % path)
 	else:
-		_status.text = "Save failed: %s (%s)" % [path, error_string(error)]
+		_set_status("Save failed: %s (%s)" % [path, error_string(error)])
 
-## original: the image as loaded (8-bit), or a procedurally generated float image.
-func _set_source(original: Image) -> void:
-	_source_original = original
-	var working := original.duplicate()
-	if _working_size > 0:
-		working.resize(_working_size, _working_size, Image.INTERPOLATE_CUBIC)
-	source_image = Blit.to_float(working)
-	_source_rect.texture = ImageTexture.create_from_image(Blit.to_display(working))
-	_generate()
-
-func _generate() -> void:
-	if source_image == null:
-		_status.text = "No source image loaded."
+## Save all maps: the format comes from the Save panel, and each map is written
+## as `materialize_<map>` with Materialize's suffix, e.g. `materialize_height.png`.
+func _on_save_all_pressed() -> void:
+	var empty := true
+	for map_type: String in maps:
+		if maps[map_type] != null:
+			empty = false
+	if empty:
+		_set_status("No maps to save.")
 		return
-	if _busy:
+	_save_all_dialog.show()
+
+func _on_save_all_dir_selected(path: String) -> void:
+	var format_id := (_save_panel.get_node("VBoxContainer/FormatOption") as OptionButton).get_selected_id()
+	var extension: String = ["bmp", "jpg", "png", "tga", "tiff"][format_id]
+	# Godot writes PNG, JPG and WebP. BMP, TGA and TIFF need a custom writer
+	# (`MainGui.cs` used FreeImage.dll), so the port writes PNG and says so.
+	if extension in ["bmp", "tga", "tiff"]:
+		_set_status("%s export is not written yet, saving PNG." % extension)
+		extension = "png"
+
+	var error := DirAccess.make_dir_recursive_absolute(path)
+	if error != OK:
+		_set_status("Could not create %s (%s)" % [path, error_string(error)])
 		return
 
-	_busy = true
-	var size := source_image.get_size()
-	_status.text = "Generating %d x %d..." % [size.x, size.y]
+	var written := 0
+	for row in MAP_BOXES:
+		var map_type: String = row["type"]
+		var image: Image = maps[map_type]
+		if image == null:
+			continue
+		var display := Blit.to_display(image)
+		var file := "%s/%s_%s.%s" % [path, "materialize", map_type, extension]
+		if extension == "jpg":
+			error = display.save_jpg(file)
+		else:
+			error = display.save_png(file)
+		if error != OK:
+			_set_status("Save failed: %s (%s)" % [file, error_string(error)])
+			return
+		written += 1
+	_set_status("Saved %d maps into %s" % [written, path])
 
-	result_image = await tool.generate(source_image, blit)
+func _on_show_full_material_pressed() -> void:
+	_set_status("Full material preview is not ported yet (DNMST.shader).")
 
-	_result_rect.texture = ImageTexture.create_from_image(Blit.to_display(result_image))
-	_busy = false
-	_status.text = "Height map ready: %d x %d" % [size.x, size.y]
+func _on_next_cube_map_pressed() -> void:
+	_set_status("Cube maps are not ported yet (Assets/CubeMaps).")
 
-	if _dirty:
-		_dirty = false
-		_generate()
+func _on_tile_maps_pressed() -> void:
+	_set_status("Seamless tiling is not ported yet (Blit_Seamless_Texture_Maker.shader).")
+
+func _on_clear_all_pressed() -> void:
+	for map_type: String in maps:
+		maps[map_type] = null
+	for module: MapModule in modules.values():
+		module.clear_map()
+	for box: MapBox in _boxes.values():
+		box.set_image(null)
+	_set_mesh_texture(null)
+	_set_status("Cleared all texture maps.")
+
+func _on_hide_gui_pressed() -> void:
+	var ui: Control = $UI
+	ui.visible = not ui.visible
+
+func _on_make_suggestion_pressed() -> void:
+	_set_status("Suggestions go to the Materialize forum; this port has no mail window.")
+
+func _on_quit_pressed() -> void:
+	get_tree().quit()
+
+func _on_fullscreen_pressed() -> void:
+	# Materialize's button label swaps between "Windowed" and "Full Screen"
+	# (`MainGui.cs` lines 451-461), same rect.
+	var button: Button = $UI/LowerRightButtons/ToggleFullscreen
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		button.text = "Windowed"
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		button.text = "Full Screen"

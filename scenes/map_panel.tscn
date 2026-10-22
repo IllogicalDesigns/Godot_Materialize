@@ -1,39 +1,72 @@
-[gd_scene format=3 uid="uid://hb34uhiw72w0"]
+[gd_scene load_steps=2 format=3 uid="uid://hb34uhiw72w0"]
 
-[node name="Map" type="PanelContainer" unique_id=720125377]
+[ext_resource type="Script" uid="uid://5vcjbpkwielj" path="res://ui/map_box.gd" id="1_mapbox"]
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1578872004]
+[node name="Map" type="PanelContainer"]
+custom_minimum_size = Vector2(110, 250)
+script = ExtResource("1_mapbox")
+
+[node name="Box" type="VBoxContainer" parent="."]
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="MapName" type="Label" parent="VBoxContainer" unique_id=250978044]
+[node name="Title" type="Label" parent="Box"]
 layout_mode = 2
-size_flags_vertical = 1
-text = "Map type"
+text = "Map"
 horizontal_alignment = 1
 
-[node name="MapPicture" type="TextureRect" parent="VBoxContainer" unique_id=1236840920]
+[node name="Preview" type="TextureRect" parent="Box"]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 expand_mode = 1
+stretch_mode = 5
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=673657754]
+[node name="IOSrow" type="HBoxContainer" parent="Box"]
 layout_mode = 2
 
-[node name="Open" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1518542794]
+[node name="Paste" type="Button" parent="Box/IOSrow"]
 layout_mode = 2
-text = "Open"
+tooltip_text = "Paste from clipboard"
+text = "P"
 
-[node name="Save" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1767372529]
+[node name="Copy" type="Button" parent="Box/IOSrow"]
 layout_mode = 2
-text = "Save"
+tooltip_text = "Copy to clipboard"
+text = "C"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer" unique_id=257838845]
+[node name="Open" type="Button" parent="Box/IOSrow"]
+layout_mode = 2
+tooltip_text = "Open a map from disk"
+text = "O"
+
+[node name="Save" type="Button" parent="Box/IOSrow"]
+layout_mode = 2
+tooltip_text = "Save this map to disk"
+text = "S"
+
+[node name="Quickrow" type="HBoxContainer" parent="Box"]
 layout_mode = 2
 
-[node name="Preview" type="Button" parent="VBoxContainer/VBoxContainer" unique_id=647940139]
+[node name="QuickSave" type="Button" parent="Box/Quickrow"]
 layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save to the last used path for this map"
+text = "Quick Save"
+
+[node name="Preview" type="Button" parent="Box/Quickrow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Show this map on the 3D preview"
 text = "Preview"
 
-[node name="Create" type="Button" parent="VBoxContainer/VBoxContainer" unique_id=1926587715]
+[node name="Createrow" type="HBoxContainer" parent="Box"]
 layout_mode = 2
-text = "Create!"
+
+[node name="Create" type="Button" parent="Box/Createrow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Create"
+
+[node name="Clear" type="Button" parent="Box/Createrow"]
+layout_mode = 2
+text = "Clear"

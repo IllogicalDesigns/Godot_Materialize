@@ -1,0 +1,832 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://cliqt2mdep4hk" path="res://MapModules/heightMap/height_panel.gd" id="1_panel"]
+
+[node name="HeightPanel" type="VBoxContainer"]
+custom_minimum_size = Vector2(340, 0)
+script = ExtResource("1_panel")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Height From Diffuse"
+bold_label = true
+
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="SourceRow" type="HBoxContainer" parent="Column"]
+layout_mode = 2
+
+[node name="UseDiffuse" type="CheckBox" parent="Column/SourceRow"]
+layout_mode = 2
+button_pressed = true
+text = " Diffuse"
+
+[node name="UseOriginal" type="CheckBox" parent="Column/SourceRow"]
+layout_mode = 2
+text = "Original Diffuse"
+
+[node name="UseNormal" type="CheckBox" parent="Column/SourceRow"]
+layout_mode = 2
+text = " Normal"
+
+[node name="RevealGroup" type="GridContainer" parent="Column"]
+layout_mode = 2
+columns = 3
+
+[node name="RevealTitle" type="Label" parent="Column/RevealGroup"]
+layout_mode = 2
+text = "Height Reveal Slider"
+vertical_alignment = 1
+
+[node name="Reveal" type="HSlider" parent="Column/RevealGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="RevealVal" type="Label" parent="Column/RevealGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="WeightGroup" type="VBoxContainer" parent="Column"]
+layout_mode = 2
+
+[node name="WeightTitle" type="Label" parent="Column/WeightGroup"]
+layout_mode = 2
+text = "Frequency Weight Equalizer"
+
+[node name="Row" type="HBoxContainer" parent="Column/WeightGroup"]
+layout_mode = 2
+
+[node name="Faders" type="HBoxContainer" parent="Column/WeightGroup/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="W6" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W6"]
+layout_mode = 2
+text = "6"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W6"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W6"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="W5" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W5"]
+layout_mode = 2
+text = "5"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W5"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.9
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W5"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.90"
+horizontal_alignment = 1
+
+[node name="W4" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W4"]
+layout_mode = 2
+text = "4"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W4"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.7
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W4"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.70"
+horizontal_alignment = 1
+
+[node name="W3" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W3"]
+layout_mode = 2
+text = "3"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W3"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W3"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="W2" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W2"]
+layout_mode = 2
+text = "2"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W2"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.3
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.30"
+horizontal_alignment = 1
+
+[node name="W1" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W1"]
+layout_mode = 2
+text = "1"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W1"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.19
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.19"
+horizontal_alignment = 1
+
+[node name="W0" type="VBoxContainer" parent="Column/WeightGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/WeightGroup/Row/Faders/W0"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/WeightGroup/Row/Faders/W0"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.15
+
+[node name="Val" type="Label" parent="Column/WeightGroup/Row/Faders/W0"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.15"
+horizontal_alignment = 1
+
+[node name="Presets" type="VBoxContainer" parent="Column/WeightGroup/Row"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Column/WeightGroup/Row/Presets"]
+layout_mode = 2
+text = "Presets"
+
+[node name="Default" type="Button" parent="Column/WeightGroup/Row/Presets"]
+layout_mode = 2
+text = "Default"
+
+[node name="Details" type="Button" parent="Column/WeightGroup/Row/Presets"]
+layout_mode = 2
+text = "Details"
+
+[node name="Displace" type="Button" parent="Column/WeightGroup/Row/Presets"]
+layout_mode = 2
+text = "Displace"
+
+[node name="ContrastGroup" type="VBoxContainer" parent="Column"]
+layout_mode = 2
+
+[node name="ContrastTitle" type="Label" parent="Column/ContrastGroup"]
+layout_mode = 2
+text = "Frequency Contrast Equalizer"
+
+[node name="Row" type="HBoxContainer" parent="Column/ContrastGroup"]
+layout_mode = 2
+
+[node name="Faders" type="HBoxContainer" parent="Column/ContrastGroup/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="C6" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C6"]
+layout_mode = 2
+text = "6"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C6"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C6"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C5" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C5"]
+layout_mode = 2
+text = "5"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C5"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C5"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C4" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C4"]
+layout_mode = 2
+text = "4"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C4"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C4"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C3" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C3"]
+layout_mode = 2
+text = "3"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C3"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C3"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C2" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C2"]
+layout_mode = 2
+text = "2"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C2"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C1" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C1"]
+layout_mode = 2
+text = "1"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C1"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="C0" type="VBoxContainer" parent="Column/ContrastGroup/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/ContrastGroup/Row/Faders/C0"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/ContrastGroup/Row/Faders/C0"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+min_value = -5.0
+max_value = 5.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/ContrastGroup/Row/Faders/C0"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="Presets" type="VBoxContainer" parent="Column/ContrastGroup/Row"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Column/ContrastGroup/Row/Presets"]
+layout_mode = 2
+text = "Presets"
+
+[node name="Default" type="Button" parent="Column/ContrastGroup/Row/Presets"]
+layout_mode = 2
+text = "Default"
+
+[node name="Cracks" type="Button" parent="Column/ContrastGroup/Row/Presets"]
+layout_mode = 2
+text = "Cracks"
+
+[node name="Funky" type="Button" parent="Column/ContrastGroup/Row/Presets"]
+layout_mode = 2
+text = "Funky"
+
+[node name="Sample1Group" type="VBoxContainer" parent="Column"]
+layout_mode = 2
+
+[node name="Top" type="HBoxContainer" parent="Column/Sample1Group"]
+layout_mode = 2
+
+[node name="Use1" type="CheckBox" parent="Column/Sample1Group/Top"]
+layout_mode = 2
+text = "Use Color Sample 1"
+
+[node name="Isolate1" type="CheckBox" parent="Column/Sample1Group/Top"]
+layout_mode = 2
+text = "Isolate Mask"
+
+[node name="Row" type="HBoxContainer" parent="Column/Sample1Group"]
+layout_mode = 2
+
+[node name="Left" type="VBoxContainer" parent="Column/Sample1Group/Row"]
+layout_mode = 2
+
+[node name="Pick1" type="Button" parent="Column/Sample1Group/Row/Left"]
+layout_mode = 2
+text = "Pick Color"
+
+[node name="Color1" type="ColorPicker" parent="Column/Sample1Group/Row/Left"]
+custom_minimum_size = Vector2(48, 24)
+layout_mode = 2
+edit_alpha = false
+sliders_visible = false
+presets_visible = false
+can_add_swatches = false
+
+[node name="Faders" type="HBoxContainer" parent="Column/Sample1Group/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="H1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/H1"]
+layout_mode = 2
+text = "Hue"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/H1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/H1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="S1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/S1"]
+layout_mode = 2
+text = "Sat"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/S1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.5
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/S1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="L1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/L1"]
+layout_mode = 2
+text = "Lum"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/L1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.2
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/L1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.20"
+horizontal_alignment = 1
+
+[node name="ML1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/ML1"]
+layout_mode = 2
+text = "Low"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/ML1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/ML1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 1
+
+[node name="MH1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/MH1"]
+layout_mode = 2
+text = "High"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/MH1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/MH1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="SH1" type="VBoxContainer" parent="Column/Sample1Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample1Group/Row/Faders/SH1"]
+layout_mode = 2
+text = "Height"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample1Group/Row/Faders/SH1"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="Val" type="Label" parent="Column/Sample1Group/Row/Faders/SH1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="Sample2Group" type="VBoxContainer" parent="Column"]
+layout_mode = 2
+
+[node name="Top" type="HBoxContainer" parent="Column/Sample2Group"]
+layout_mode = 2
+
+[node name="Use2" type="CheckBox" parent="Column/Sample2Group/Top"]
+layout_mode = 2
+text = "Use Color Sample 2"
+
+[node name="Isolate2" type="CheckBox" parent="Column/Sample2Group/Top"]
+layout_mode = 2
+text = "Isolate Mask"
+
+[node name="Row" type="HBoxContainer" parent="Column/Sample2Group"]
+layout_mode = 2
+
+[node name="Left" type="VBoxContainer" parent="Column/Sample2Group/Row"]
+layout_mode = 2
+
+[node name="Pick2" type="Button" parent="Column/Sample2Group/Row/Left"]
+layout_mode = 2
+text = "Pick Color"
+
+[node name="Color2" type="ColorPicker" parent="Column/Sample2Group/Row/Left"]
+custom_minimum_size = Vector2(48, 24)
+layout_mode = 2
+edit_alpha = false
+sliders_visible = false
+presets_visible = false
+can_add_swatches = false
+
+[node name="Faders" type="HBoxContainer" parent="Column/Sample2Group/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="H2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/H2"]
+layout_mode = 2
+text = "Hue"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/H2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/H2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="S2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/S2"]
+layout_mode = 2
+text = "Sat"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/S2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.5
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/S2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="L2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/L2"]
+layout_mode = 2
+text = "Lum"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/L2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+value = 0.2
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/L2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.20"
+horizontal_alignment = 1
+
+[node name="ML2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/ML2"]
+layout_mode = 2
+text = "Low"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/ML2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/ML2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 1
+
+[node name="MH2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/MH2"]
+layout_mode = 2
+text = "High"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/MH2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/MH2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="SH2" type="VBoxContainer" parent="Column/Sample2Group/Row/Faders"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Column/Sample2Group/Row/Faders/SH2"]
+layout_mode = 2
+text = "Height"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="Column/Sample2Group/Row/Faders/SH2"]
+custom_minimum_size = Vector2(28, 70)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.3
+
+[node name="Val" type="Label" parent="Column/Sample2Group/Row/Faders/SH2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.30"
+horizontal_alignment = 1
+
+[node name="BlendGroup" type="GridContainer" parent="Column"]
+layout_mode = 2
+columns = 3
+
+[node name="BlendTitle" type="Label" parent="Column/BlendGroup"]
+layout_mode = 2
+text = "Sample Blend"
+vertical_alignment = 1
+
+[node name="Blend" type="HSlider" parent="Column/BlendGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="BlendVal" type="Label" parent="Column/BlendGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="FinalGroup" type="GridContainer" parent="Column"]
+layout_mode = 2
+columns = 3
+
+[node name="GainTitle" type="Label" parent="Column/FinalGroup"]
+layout_mode = 2
+text = "Final Gain"
+vertical_alignment = 1
+
+[node name="Gain" type="HSlider" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -0.5
+max_value = 0.5
+step = 0.01
+
+[node name="GainVal" type="Label" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="ContrastTitle" type="Label" parent="Column/FinalGroup"]
+layout_mode = 2
+text = "Final Contrast"
+vertical_alignment = 1
+
+[node name="Contrast" type="HSlider" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -10.0
+max_value = 10.0
+step = 0.1
+value = 1.5
+
+[node name="ContrastVal" type="Label" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "1.50"
+horizontal_alignment = 2
+
+[node name="BiasTitle" type="Label" parent="Column/FinalGroup"]
+layout_mode = 2
+text = "Final Bias"
+vertical_alignment = 1
+
+[node name="Bias" type="HSlider" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -1.0
+max_value = 1.0
+step = 0.01
+
+[node name="BiasVal" type="Label" parent="Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="SetButton" type="Button" parent="Column"]
+layout_mode = 2
+text = "Set as Height Map"
