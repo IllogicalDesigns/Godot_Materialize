@@ -60,6 +60,21 @@ func generate(source: Image, blit: Blit) -> Image:
 	push_error("%s does not implement generate()" % name)
 	return null
 
+## The map store key this tool reads as its input. Every tool works from the
+## diffuse, so the base is "diffuse". The Diffuse tool is the exception: Unity's
+## Edit Diffuse window reads `_DiffuseMapOriginal`, the pristine source, so its
+## module returns "diffuse_original" and never sees its own output.
+func source_map_type() -> String:
+	return "diffuse"
+
+## Whether this map's preview uses the split-screen reveal on the mesh (the
+## Diffuse Reveal Slider, Materialize's `_Slider` in
+## `Edit_Diffuse_Preview.shader`: source image on the left of the seam, edited
+## map on the right). The Height Reveal Slider mixes towards grey instead, so
+## the base says no.
+func preview_split() -> bool:
+	return false
+
 ## A copy of `map` prepared for display on the map box and the mesh. Modules
 ## override this when the raw map is not what the user should see. Preview-only
 ## controls (the height module's Height Reveal Slider) are not blended here:

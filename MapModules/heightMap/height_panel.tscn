@@ -427,7 +427,7 @@ script = ExtResource("2_collapse")
 [node name="Header" type="HBoxContainer" parent="Column/Sample1Group" unique_id=1053297415]
 layout_mode = 2
 
-[node name="Fold" type="Button" parent="Column/Sample1Group/Header"]
+[node name="Fold" type="Button" parent="Column/Sample1Group/Header" unique_id=608078549]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 toggle_mode = true
@@ -441,7 +441,7 @@ text = "Use Color Sample 1"
 layout_mode = 2
 text = "Isolate Mask"
 
-[node name="Body" type="VBoxContainer" parent="Column/Sample1Group"]
+[node name="Body" type="VBoxContainer" parent="Column/Sample1Group" unique_id=1198127753]
 layout_mode = 2
 
 [node name="Row" type="HBoxContainer" parent="Column/Sample1Group/Body" unique_id=1942869910]
@@ -598,7 +598,7 @@ script = ExtResource("2_collapse")
 [node name="Header" type="HBoxContainer" parent="Column/Sample2Group" unique_id=486196415]
 layout_mode = 2
 
-[node name="Fold" type="Button" parent="Column/Sample2Group/Header"]
+[node name="Fold" type="Button" parent="Column/Sample2Group/Header" unique_id=1696177698]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 toggle_mode = true
@@ -612,7 +612,7 @@ text = "Use Color Sample 2"
 layout_mode = 2
 text = "Isolate Mask"
 
-[node name="Body" type="VBoxContainer" parent="Column/Sample2Group"]
+[node name="Body" type="VBoxContainer" parent="Column/Sample2Group" unique_id=1223883338]
 layout_mode = 2
 
 [node name="Row" type="HBoxContainer" parent="Column/Sample2Group/Body" unique_id=1027740964]

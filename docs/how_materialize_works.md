@@ -172,7 +172,94 @@ Negative contrasts invert a level, which turns bumps into creases — Cracked Mu
 uses that to make the wide scales carve cracks while the sharp levels keep the
 surface relief.
 
-## 3. UI (Unity OnGUI → Godot Control + map box)
+## 3. Edit Diffuse
+
+Unity: `Scripts/EditDiffuseGui.cs` (the "Edit Diffuse" window, `EDDS` settings),
+with `Shaders/Resources/Blit_Shader.shader` pass 1 (the blur) and pass 11
+(`fragEditDiffuse`).
+
+Godot: `MapModules/diffuseMap/edit_diffuse.gd` +
+`MapModules/diffuseMap/edit_diffuse.gdshader`, passes 1 BLUR and 2 EDIT.
+
+The core idea: **the diffuse map is the photograph minus its lighting**. A photo
+has a slow illumination ramp (the average colour the stone wall absorbs) riding on
+top of the local colour detail. The tool removes the ramp, keeps the detail, and
+puts the source hue back so the map does not read as flat grey.
+
+Stage 1 - two blurs. Unity runs Blit_Shader pass 1 as a separable raised-cosine
+blur, stacked `2 * ceil(2 * blurSize)` times with alternating directions:
+
+- **Overlay blur** (`Overlay Blur Size`, 5..100, default 20): the blurred copy.
+  `overlay = mainTex - blurTex` is the detail the tool re-amplifies.
+- **Average colour** (`Average Color Blur Size`, 5..100, default 50): the wide
+  blur, the lighting ramp `fragEditDiffuse` removes. The average stays in colour
+  (Unity blurs the RGB map, not grey).
+
+Each Godot pass costs a frame, so the port runs one horizontal and one vertical
+pass per map with the full radius and the same raised-cosine window. The CPU
+reference (`tests/diffuse_cpu.gd`) runs the same kernel, so the GPU-vs-CPU check
+measures the chain, not the stacking difference.
+
+Stage 2 - spot removal. `avgLum = dot(mainTex, GREY)`; `lightMask` is a smoothstep
+from `1 - HotSpot` up, `darkMask` a smoothstep below `DarkSpot`; the pixel is
+mixed toward the average colour by `1 - (1 - lightMask) * darkMask`. Hot-spot
+removal pushes bright pixels down, dark-spot removal pushes dark pixels up.
+
+Stage 3 - lighting removal. The mask powers are remapped inside the shader
+(`lightMaskPow = saturate((x - 0.5) * 2) + 1 - (1 - 1 / (saturate((x - 0.5) *
+-2) + 1))`, same formula for the dark side), so 0.5 gives exponent 1, 0 gives 0.5,
+1 gives 2. Then `mainTex -= avgColor`, `grey = dot(mainTex, GREY)`,
+`highMask = pow(clamp(grey * 2, 0.001, 0.99), lightMaskPow)`,
+`lowMask = pow(clamp(-grey * 2, 0.001, 0.99), darkMaskPow)`, `mainTex += 0.5`,
+and `Remove Light` / `Remove Shadow` scale the bright and dark deviations by
+those masks.
+
+Stage 4 - overlay. `overlayMask = saturate(2 * (1 - (1 - highMask * LightPow) *
+(1 - lowMask * DarkPow)) + 0.1)`, and `mainTex *= lerp(1, overlay *
+BlurContrast * 10 + 1, overlayMask)`. `Overlay Blur Contrast` (default 0)
+multiplies the detail; at 0 the overlay does nothing, which is why the default
+chain passes through.
+
+Stage 5 - colour restore. `hsl = RGBToHSL(mainTex)` and `hsl.xy` are replaced by
+the source's hue and saturation, so the edited luminance keeps the source's
+colouring. `Keep Original Color` mixes that restored colour back in, weighted by
+the desaturate mask.
+
+Stage 6 - final: `mainTex = saturate((mainTex - 0.5) * FinalContrast + 0.5 +
+FinalBias)`, then `mainTex = lerp(grey, mainTex, Saturation)`.
+
+Defaults (`EditDiffuseGui.cs` lines 46-64): `Slider 0.5`, Average Blur 50,
+Overlay Blur 20, Overlay Contrast 0, Light Mask Power 0.5, Remove Light 0,
+Shadow Mask Power 0.5, Remove Shadow 0, Hot Spot 0, Dark Spot 0, Final Contrast
+1.0, Final Bias 0, Color Lerp 0.5, Saturation 1.0. The defaults bake the
+lighting removal (Keep Original Color 0.5 keeps the source hue at the removed
+luminance), so the neutral map is **not** the source image; the stone pattern's
+neutral mean is 0.499 on the CPU reference.
+
+`MapModules/diffuseMap/diffuse_panel.tscn` + `.gd` is the tool panel, laid out in
+the window order `EditDiffuseGui.cs` draws (lines 495-877): Diffuse Reveal Slider
+(0..1), Average Color Blur Size (5..100), Overlay Blur Size (5..100), Overlay
+Blur Contrast (-1..1), Light Mask Power (0..1), Remove Light (0..1), Shadow Mask
+Power (0..1), Remove Shadow (0..1), Hot Spot Removal (0..1), Dark Spot Removal
+(0..1), Final Contrast (-2..2), Final Bias (-0.5..0.5), Keep Original Color
+(0..1), Saturation (0..1), and `Set as Diffuse`. The panel edits the
+`DiffuseGenerator.settings` `Dictionary` in place and emits `settings_changed`
+(debounced regeneration) and `preview_changed` for the reveal slider.
+
+The Diffuse Reveal Slider is Unity's `_Slider` (`Edit_Diffuse_Preview.shader`):
+the test object shows the source image on one side of the seam and the edited map
+on the other. `shaders/mesh_preview.gdshader` implements it as `split_reveal` +
+`original`: left of the seam the shader samples the source texture, right of the
+seam the map. It is a uniform write, so dragging the slider costs no pass.
+
+The Diffuse tool reads the pristine source, Unity's `_DiffuseMapOriginal`, so the
+module's `source_map_type()` is `"diffuse_original"` and the shell keeps that key
+in the map store. The edited output goes to `maps["diffuse"]`, which every other
+tool reads; Unity's box draws `_DiffuseMap` and falls back to
+`_DiffuseMapOriginal` (`MainGui.cs` lines 574-670), so clearing the Diffuse box
+restores the source as the box image.
+
+## 4. UI (Unity OnGUI → Godot Control + map box)
 
 The app is laid out from `MainGui.cs`'s pixel rectangles: seven map boxes
 (`scenes/map_panel.tscn` + `ui/map_box.gd`, instanced as `MapPanel`..`MapPanel7`)
@@ -221,7 +308,7 @@ makes that map active: its panel is swapped into `UI/MapOptionsPanel/PanelSlot`,
 its map goes onto the mesh, and the unported maps' `Create` buttons are disabled
 with the status line naming the Unity file each one still needs.
 
-## 4. Data space, and why gamma is dropped
+## 5. Data space, and why gamma is dropped
 
 Unity's render textures are `RenderTextureFormat.ARGB32` with
 `RenderTextureReadWrite.Linear`, and the shaders take a `_GamaCorrection` value
@@ -233,15 +320,15 @@ gamma-agnostic, so dropping `_GamaCorrection` changes the exact pixel values
 (not the look) and removes a whole class of conversion bugs. Pixel-exact parity
 with Unity was explicitly not a goal.
 
-## 5. Skipped / deferred in this commit
+## 6. Skipped / deferred in this commit
 
 - **"Use Normal as input"** for the height tool (Unity's `ProcessNormal()` and
   the Spread / SpreadBoost normal path, `_HeightFromNormal`). The Godot app has
   no normal map source yet; this returns when Normal From Height is ported.
 - **Preview on a 3D mesh**: the map box previews and the `MeshInstance3D` show the
   live map. The mesh material (`shaders/mesh_preview.gdshader`) mixes the map
-  towards mid-grey by the Height Reveal Slider, so dragging the slider costs no
-  pass. Materialize renders every map on a test object with the DNMST preview
+  towards mid-grey by the Height Reveal Slider and splits source / edited at the
+  seam for the Diffuse Reveal Slider, so dragging either slider costs no pass. Materialize renders every map on a test object with the DNMST preview
   shader and cubemap lighting; the port applies one map at a time with a plain
   `shader_type spatial` material, so DNMST, the cubemap cycling (`next cube map`)
   and the FBX test meshes are still deferred.
@@ -254,7 +341,7 @@ with Unity was explicitly not a goal.
   need PNG conversion. A procedural stone test pattern (`core/test_pattern.gd`)
   stands in for a source image.
 
-## 6. Files in the port
+## 7. Files in the port
 
 - `MapModules/map_module.gd` — the module contract, shared by every map module.
 - `MapModules/heightMap/height_from_diffuse.gdshader` — passes 0 SAMPLE, 1 BLUR,
@@ -265,11 +352,25 @@ with Unity was explicitly not a goal.
   panel, laid out like `HeightFromDiffuseGui.cs`.
 - `MapModules/heightMap/height_map_module.gd` — binds the generator and the panel
   to the module contract.
+- `MapModules/diffuseMap/edit_diffuse.gdshader` — pass 1 BLUR (separable
+  raised-cosine, Unity's pass 1, used twice: average map, then overlay), pass 2
+  EDIT (`fragEditDiffuse`: light / shadow masks, spot removal, contrast, bias,
+  keep, saturation).
+- `MapModules/diffuseMap/edit_diffuse.gd` — settings dict with Materialize's
+  defaults, the generate coroutine (average blur → average map → overlay blur →
+  edit).
+- `MapModules/diffuseMap/diffuse_panel.gd` + `diffuse_panel.tscn` — the Diffuse
+  tool panel, laid out like `EditDiffuseGui.cs` in window order, including the
+  split-screen reveal slider and "Set as Diffuse".
+- `MapModules/diffuseMap/diffuse_map_module.gd` — binds the generator and the
+  panel to the module contract, and adds the two preview hooks
+  (`source_map_type()`, `preview_split()`).
 - `core/blit.gd` — the pass framework (setup, blit, flat, format helpers).
 - `core/test_pattern.gd` — procedural stone wall source (mortar, per-brick tone,
   bevel at joints, grain, top-down lighting gradient) so the average subtraction
   can be tested without loading a photo.
-- `shaders/mesh_preview.gdshader` — the mesh preview material (`map` + `reveal`).
+- `shaders/mesh_preview.gdshader` — the mesh preview material (`map` + `reveal` +
+  `split_reveal` + `original`, the split-screen for the Diffuse Reveal Slider).
 - `ui/map_box.gd` + `scenes/map_panel.tscn` — the generic map box (title,
   preview, `P` `C` `O` `S`, Quick Save, Preview, Create, Clear) and its
   `preview_clicked` UV forwarding.
@@ -289,17 +390,26 @@ with Unity was explicitly not a goal.
   checks the map on the mesh, the reveal uniform, the
   preset → debounce → pass chain → box preview chain, the map checksum, and saves
   a window screenshot.
+- `tests/diffuse_cpu.gd` + `tests/diffuse_cpu.tscn` — CPU-only reference of
+  `fragBlur` + `fragEditDiffuse` (no GPU, no VRAM), the kernel the GPU chain is
+  measured against.
+- `tests/diffuse_test.gd` + `tests/diffuse_test.tscn` — end-to-end 1024² chain on
+  the stone pattern, writing PNGs and statistics.
+- `tests/diffuse_live.gd` + `tests/diffuse_live.tscn` — drives the real app for
+  Diffuse: panel swap, split-screen uniforms, generation from the pristine
+  source, "Set as Diffuse", Clear restore.
 
-## 7. Testing status
+## 8. Testing status
 
 The GPU passes have been run on the user's machine (Vulkan 1.4.341, Forward Plus,
 NVIDIA RTX 3080). What is verified:
 
 - `godot --headless --path . --import`, `godot --path . --headless --quit`, and
   `godot --headless -e --path . --quit` run clean (scripts parse, scenes load, the
-  Height panel instantiates in `MapOptionsPanel` with every node path resolving,
-  and the roadmap prints). A headless run skips the pass chain, because the
-  headless display server cannot render the `SubViewport` quad.
+  Height panel and the Diffuse panel instantiate in `MapOptionsPanel` with every
+  node path resolving, and the roadmap prints with Diffuse marked ported). A
+  headless run skips the pass chain, because the headless display server cannot
+  render the `SubViewport` quad.
 - **The algorithm itself, on the CPU.** `tests/height_cpu.tscn` is a pure
   GDScript reference implementation of all four stages — grey base, the
   raised-cosine separable pyramid, the wide average map, the combine. It uses
@@ -345,6 +455,33 @@ NVIDIA RTX 3080). What is verified:
   and moves the map checksum (0.251124 → 0.251701) — which is what proves the
   weight uniforms reached the shader. `user://live_preview_window.png` is a
   screenshot of the running app for eyeballing.
+- **The Diffuse algorithm, on the CPU** (`tests/diffuse_cpu.tscn`, 64²): the CPU
+  port of `fragBlur` + `fragEditDiffuse` matches the GPU chain pixel-for-pixel.
+  Neutral settings (Materialize's defaults) give mean 0.499 on the CPU and 0.499
+  on the GPU, max pixel delta 0.0004; strong settings (light mask 1, shadow mask
+  1, remove light / shadow 1, contrast 2, bias 0.5, keep 0, saturation 0.2) give
+  0.611 vs 0.612, max pixel delta 0.0005. The neutral chain is not an identity
+  map: `Keep Original Color` 0.5 bakes the lighting removal, which is what
+  Unity's default settings do.
+- **The Diffuse generator, on the GPU** (`tests/diffuse_test.tscn`, 1024²):
 
-What is not verified: the visual result of the height map on the mesh (the
-screenshot needs a human eye), and everything that depends on unported maps.
+  ```
+  source: min 0.214 max 0.666 mean 0.433
+  neutral: mean 0.511   strong: mean 0.599, moved +0.088
+  ```
+
+  The neutral mean sits inside the reference band centred on 0.5 (CPU 0.499) and
+  the strong settings move the map. PNGs go to `user://diffuse_test/`.
+- **The live Diffuse app chain** (`tests/diffuse_live.tscn`): activating the
+  module swaps `DiffusePanel` into `MapOptionsPanel` (14 slider rows); the Diffuse
+  Reveal Slider writes `settings["reveal"]` and the mesh material's
+  `split_reveal` with no pass chain, and the `original` texture follows the
+  source; generation sliders regenerate from `maps["diffuse_original"]` (edited
+  mean 0.5004 vs source 0.4116); "Set as Diffuse" re-runs the chain; Clear
+  restores the source to the box and to the split preview.
+
+What is not verified: the visual result of the maps on the mesh (the screenshots
+need a human eye), the exact stacked-blur tail Unity produces (see the stacking
+note), and everything that depends on unported maps (Normal, Metallic,
+Smoothness, Edge, AO, alignment, seamless tiling, DNMST preview, cubemap lighting,
+project save, BMP/TIFF/TGA export).

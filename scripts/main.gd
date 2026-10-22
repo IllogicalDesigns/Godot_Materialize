@@ -29,8 +29,8 @@ const MAP_BOXES: Array[Dictionary] = [
 		"unity": "Scripts/HeightFromDiffuseGui.cs + Shaders/Resources/Blit_Sample.shader",
 		"module": "MapModules/heightMap/", "status": "ported (first tool)"},
 	{"type": "diffuse", "title": "Diffuse Map", "create": "Edit",
-		"unity": "Scripts/EditDiffuseGui.cs + Shaders/Edit_Diffuse_Preview.shader",
-		"module": "MapModules/diffuseMap/", "status": "not started"},
+		"unity": "Scripts/EditDiffuseGui.cs + Shaders/Resources/Blit_Shader.shader",
+		"module": "MapModules/diffuseMap/", "status": "ported (second tool)"},
 	{"type": "normal", "title": "Normal Map", "create": "Create",
 		"unity": "Scripts/NormalFromHeightGui.cs + Shaders/Resources/Blit_Normal_From_Height.shader",
 		"module": "MapModules/normalMap/", "status": "not started"},
@@ -116,6 +116,7 @@ func _ready() -> void:
 		maps[row["type"]] = null
 
 	modules["height"] = _add_height_module()
+	modules["diffuse"] = _add_diffuse_module()
 
 	for index in MAP_BOXES.size():
 		var spec: Dictionary = MAP_BOXES[index]
@@ -192,6 +193,12 @@ func _add_height_module() -> MapModule:
 	module.map_changed.connect(_on_map_changed)
 	return module
 
+func _add_diffuse_module() -> MapModule:
+	var module := DiffuseMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
 ## Make one map active: its panel goes into `MapOptionsPanel`, and its map goes
 ## onto the mesh. Panels are built once and reused, so slider state survives
 ## switching maps.
@@ -226,12 +233,13 @@ func _generate() -> void:
 	if _active == null:
 		_set_status("Pick a map box to work on.")
 		return
-	if maps["diffuse"] == null:
+	var source_key: String = _active.source_map_type()
+	if maps.get(source_key) == null:
 		_set_status("Load a diffuse image, or press the stone test pattern.")
 		return
 
 	_busy = true
-	var source: Image = maps["diffuse"]
+	var source: Image = maps[source_key]
 	var size := source.get_size()
 	_set_status("Generating %d x %d..." % [size.x, size.y])
 
@@ -303,9 +311,15 @@ func _on_preview_changed() -> void:
 
 func _set_reveal() -> void:
 	var reveal := 1.0
+	var split := 0.0
 	if _active != null:
 		reveal = clampf(float(_active.settings().get("reveal", 1.0)), 0.0, 1.0)
+		if _active.preview_split():
+			split = reveal
 	_mesh_material.set_shader_parameter("reveal", reveal)
+	# Diffuse uses the split seam (`preview_split`); Height keeps the grey-mix
+	# reveal, which is what `split_reveal` = 0 leaves in effect.
+	_mesh_material.set_shader_parameter("split_reveal", split)
 
 func _on_apply_requested() -> void:
 	_dirty = false
@@ -329,7 +343,16 @@ func _on_box_button(action: String, map_type: String) -> void:
 			else:
 				maps[map_type] = null
 				_on_map_changed(map_type, null)
-			if map_type == _mesh_map:
+			if map_type == "diffuse":
+				# Unity clears `_DiffuseMap` and the box falls back to
+				# `_DiffuseMapOriginal` (`MainGui.cs` lines 574-670), so the
+				# pristine source becomes the diffuse map again: the box and
+				# the mesh both show the source, not the grey placeholder.
+				maps["diffuse"] = maps["diffuse_original"]
+				(_boxes["diffuse"] as MapBox).set_image(maps["diffuse"])
+				if map_type == _mesh_map:
+					_set_mesh_map(_mesh_map)
+			elif map_type == _mesh_map:
 				_set_mesh_texture(null)
 		"open":
 			_load_type = map_type
@@ -342,7 +365,20 @@ func _on_box_button(action: String, map_type: String) -> void:
 			_save_type = map_type
 			_save_dialog.title = "Save %s" % (module.map_title() if module != null else map_type)
 			_save_dialog.show()
-		"paste", "copy":
+		"quick_save":
+			if maps.get(map_type) == null:
+				_set_status("Nothing to quick save for %s yet." % map_type)
+				return
+			# Materialize quick-saves straight to `QuicksavePathProperty` with
+			# the map's suffix (`MainGui.cs` lines 543-547); the port writes to
+			# `user://` with the same suffix, no dialog.
+			var suffix: String = module.save_suffix() if module != null else "_" + map_type
+			var quick := Blit.to_display(maps[map_type])
+			var quick_path := "user://materialize%s.png" % suffix
+			if quick.save_png(quick_path) == OK:
+				_set_status("Quick saved %s" % quick_path)
+			else:
+				_set_status("Quick save failed for %s." % map_type)
 			_set_status("Clipboard is not ported yet (%s)." % map_type)
 		_:
 			_set_status("Unknown action %s." % action)
@@ -405,13 +441,29 @@ func _on_preview_clicked(map_type: String, uv: Vector2) -> void:
 ## original: the image as loaded (8-bit), or a procedurally generated float
 ## image. The working copy is derived from it, so resolution changes re-derive
 ## instead of compounding resizes.
+##
+## The working copy lives in two map keys, the way Materialize keeps the source
+## image: `maps["diffuse_original"]` is the pristine source that the Diffuse
+## tool reads (`_DiffuseMapOriginal`), and `maps["diffuse"]` is the map every
+## other tool reads, starting as a copy of the source. The Diffuse box shows
+## `maps["diffuse"]` falling back to the source, like Unity's box draws
+## `_DiffuseMap` and falls back to `_DiffuseMapOriginal` (`MainGui.cs`
+## lines 574-670).
 func _set_source(original: Image) -> void:
 	_source_original = original
 	var working := original.duplicate()
 	if _working_size > 0:
 		working.resize(_working_size, _working_size, Image.INTERPOLATE_CUBIC)
-	maps["diffuse"] = Blit.to_float(working)
-	(_boxes["diffuse"] as MapBox).set_image(maps["diffuse"])
+	var source := Blit.to_float(working)
+	maps["diffuse_original"] = source
+	# The Diffuse box shows the source copy, the way Unity copies the loaded
+	# image into `_DiffuseMap` and the box draws `_DiffuseMap` while editing.
+	_mesh_material.set_shader_parameter("original", ImageTexture.create_from_image(Blit.to_display(source)))
+	var diffuse: MapModule = modules.get("diffuse")
+	if diffuse != null:
+		diffuse.set_map(source.duplicate())
+	else:
+		maps["diffuse"] = source
 	_generate()
 
 func _on_load_pressed() -> void:
@@ -520,12 +572,26 @@ func _on_tile_maps_pressed() -> void:
 
 func _on_clear_all_pressed() -> void:
 	for map_type: String in maps:
+		if map_type == "diffuse_original":
+			continue
 		maps[map_type] = null
 	for module: MapModule in modules.values():
 		module.clear_map()
 	for box: MapBox in _boxes.values():
 		box.set_image(null)
-	_set_mesh_texture(null)
+	# Unity's ClearAllTextureMaps clears `_DiffuseMap`, and the Diffuse box
+	# falls back to `_DiffuseMapOriginal` (`MainGui.cs` lines 574-670), so the
+	# box and the split-screen preview show the source image again.
+	var source: Image = maps["diffuse_original"]
+	if source != null:
+		maps["diffuse"] = source
+		var diffuse: MapModule = modules.get("diffuse")
+		if diffuse != null:
+			diffuse.map = source
+		(_boxes["diffuse"] as MapBox).set_image(source)
+		_set_mesh_map(_mesh_map)
+	else:
+		_set_mesh_texture(null)
 	_set_status("Cleared all texture maps.")
 
 func _on_hide_gui_pressed() -> void:

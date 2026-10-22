@@ -53,6 +53,7 @@ signal color_pick_requested(sample_index: int)
 ## Rows: [slider node path, settings path, value label node path, preview-only].
 ## The faders run coarse (Blur6, leftmost) to fine (Blur0, rightmost), exactly
 ## as Materialize places them.
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const SLIDER_ROWS := [
 	["Column/RevealGroup/Reveal", ["reveal"], "Column/RevealGroup/RevealVal", true],
 
@@ -94,6 +95,7 @@ const SLIDER_ROWS := [
 ]
 
 ## Rows: [checkbox node path, settings path].
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const CHECK_ROWS := [
 	["Column/SourceRow/UseDiffuse", ["use_adjusted_diffuse"]],
 	["Column/SourceRow/UseOriginal", ["use_original_diffuse"]],
@@ -110,18 +112,21 @@ const CHECK_ROWS := [
 ## folds when the box goes off, and Isolate Mask is disabled with it
 ## (`HeightFromDiffuseGui.cs` lines 714-751, 760-797, and `GUI.enabled` on the
 ## isolate toggle, line 717).
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const SAMPLE_FOLDS := {
 	"sample1": ["Column/Sample1Group", "Column/Sample1Group/Header/Isolate1"],
 	"sample2": ["Column/Sample2Group", "Column/Sample2Group/Header/Isolate2"],
 }
 
 ## Rows: [color picker node path, settings path].
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const COLOR_ROWS := [
 	["Column/Sample1Group/Body/Row/Left/Color1", ["sample1", "color"]],
 	["Column/Sample2Group/Body/Row/Left/Color2", ["sample2", "color"]],
 ]
 
 ## Rows: [button node path, sample index].
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const PICK_ROWS := [
 	["Column/Sample1Group/Body/Row/Left/Pick1", 1],
 	["Column/Sample2Group/Body/Row/Left/Pick2", 2],
@@ -129,6 +134,7 @@ const PICK_ROWS := [
 
 ## Rows: [button node path, settings key, preset name]. Labels are Materialize's
 ## button strings: Default / Details / Displace and Default / Cracks / Funky.
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const PRESET_ROWS := [
 	["Column/WeightGroup/Row/Presets/Default", "weights", "default"],
 	["Column/WeightGroup/Row/Presets/Details", "weights", "detail"],
@@ -141,6 +147,7 @@ const PRESET_ROWS := [
 ## The source checkboxes that are not implemented yet stay disabled: the port
 ## reads the loaded diffuse, and "Original Diffuse" / " Normal" need the
 ## original image and a normal map source, which come with later tools.
+# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
 const DISABLED_SOURCE_CHECKS := ["Column/SourceRow/UseOriginal", "Column/SourceRow/UseNormal"]
 
 var _settings: Dictionary = {}
