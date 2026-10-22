@@ -1,108 +1,109 @@
-[gd_scene format=3 uid="uid://b1rn8uk0elh5v"]
+[gd_scene format=3 uid="uid://bv4rdaybq5ljr"]
 
-[ext_resource type="Script" uid="uid://2otelfkuwtth" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://ui/height_panel.tscn" id="2_panel"]
+[ext_resource type="PackedScene" uid="uid://hb34uhiw72w0" path="res://scenes/map_panel.tscn" id="1_e3056"]
+[ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_41mu8"]
 
-[node name="Main" type="Control" unique_id=2123546258]
-layout_mode = 3
+[sub_resource type="BoxMesh" id="BoxMesh_616h8"]
+
+[node name="MainNew" type="Node3D" unique_id=2127802715]
+
+[node name="UI" type="MarginContainer" parent="." unique_id=733213221]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_main")
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
 
-[node name="Split" type="HSplitContainer" parent="." unique_id=1743503193]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-split_offsets = PackedInt32Array(420)
-split_offset = 420
-
-[node name="Left" type="VBoxContainer" parent="Split" unique_id=2058584396]
+[node name="MapsAnd3DFunctions" type="VBoxContainer" parent="UI" unique_id=818279137]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 0
 
-[node name="Toolbar" type="HBoxContainer" parent="Split/Left" unique_id=1262229209]
+[node name="Maps" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=910327083]
 layout_mode = 2
 
-[node name="LoadButton" type="Button" parent="Split/Left/Toolbar" unique_id=758591663]
-layout_mode = 2
-text = "Load diffuse"
-
-[node name="PatternButton" type="Button" parent="Split/Left/Toolbar" unique_id=441413014]
-layout_mode = 2
-text = "Stone test pattern"
-
-[node name="Resolution" type="OptionButton" parent="Split/Left/Toolbar" unique_id=1520694386]
+[node name="MapPanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=720125377 instance=ExtResource("1_e3056")]
 layout_mode = 2
 
-[node name="GenerateButton" type="Button" parent="Split/Left/Toolbar" unique_id=1039928204]
+[node name="MapPanel2" parent="UI/MapsAnd3DFunctions/Maps" unique_id=2041840648 instance=ExtResource("1_e3056")]
 layout_mode = 2
-text = "Generate"
 
-[node name="SaveButton" type="Button" parent="Split/Left/Toolbar" unique_id=1622151608]
+[node name="MapPanel3" parent="UI/MapsAnd3DFunctions/Maps" unique_id=603737742 instance=ExtResource("1_e3056")]
 layout_mode = 2
-text = "Save PNG"
 
-[node name="Status" type="Label" parent="Split/Left/Toolbar" unique_id=1635024363]
+[node name="MapPanel4" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1761205318 instance=ExtResource("1_e3056")]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Ready"
-horizontal_alignment = 2
 
-[node name="SourceTitle" type="Label" parent="Split/Left" unique_id=1057926610]
+[node name="MapPanel5" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 instance=ExtResource("1_e3056")]
 layout_mode = 2
-text = "Source (diffuse) - click to pick a sample colour"
 
-[node name="SourceRect" type="TextureRect" parent="Split/Left" unique_id=327040816]
-custom_minimum_size = Vector2(256, 256)
+[node name="MapPanel6" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 instance=ExtResource("1_e3056")]
 layout_mode = 2
-size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 5
 
-[node name="ResultTitle" type="Label" parent="Split/Left" unique_id=1458548387]
+[node name="MapPanel7" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 instance=ExtResource("1_e3056")]
 layout_mode = 2
-text = "Result (height map)"
 
-[node name="ResultRect" type="TextureRect" parent="Split/Left" unique_id=972722618]
-custom_minimum_size = Vector2(256, 256)
+[node name="SavePanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=323743495 instance=ExtResource("2_41mu8")]
 layout_mode = 2
-size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 5
 
-[node name="Scroll" type="ScrollContainer" parent="Split" unique_id=700985879]
+[node name="3DViewFunctions" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=897229439]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 8
 
-[node name="Panel" parent="Split/Scroll" unique_id=50259751 instance=ExtResource("2_panel")]
+[node name="ShowFullMaterial" type="Button" parent="UI/MapsAnd3DFunctions/3DViewFunctions" unique_id=681922629]
 layout_mode = 2
-size_flags_horizontal = 3
+text = "Show full Material"
 
-[node name="LoadDialog" type="FileDialog" parent="." unique_id=1920531322]
-title = "Load a diffuse image"
-filters = PackedStringArray("*.png,*.jpg,*.jpeg,*.exr,*.hdr;Image files")
+[node name="NextCubeMap" type="Button" parent="UI/MapsAnd3DFunctions/3DViewFunctions" unique_id=61003437]
+layout_mode = 2
+text = "next cube map"
 
-[node name="SaveDialog" type="FileDialog" parent="." unique_id=499797213]
-mode = 4
-title = "Save height map"
-filters = PackedStringArray("*.png;PNG image")
+[node name="TileMaps" type="Button" parent="UI/MapsAnd3DFunctions/3DViewFunctions" unique_id=1561304354]
+layout_mode = 2
+text = "Tile maps"
 
-[node name="Timer" type="Timer" parent="." unique_id=461447164]
-one_shot = true
+[node name="ClearAllTextureMaps" type="Button" parent="UI/MapsAnd3DFunctions/3DViewFunctions" unique_id=1547271649]
+layout_mode = 2
+text = "Clear all texture maps"
 
-[connection signal="pressed" from="Split/Left/Toolbar/LoadButton" to="." method="_on_load_pressed"]
-[connection signal="pressed" from="Split/Left/Toolbar/PatternButton" to="." method="_on_pattern_pressed"]
-[connection signal="item_selected" from="Split/Left/Toolbar/Resolution" to="." method="_on_resolution_selected"]
-[connection signal="pressed" from="Split/Left/Toolbar/GenerateButton" to="." method="_on_generate_pressed"]
-[connection signal="pressed" from="Split/Left/Toolbar/SaveButton" to="." method="_on_save_pressed"]
-[connection signal="gui_input" from="Split/Left/SourceRect" to="." method="_on_source_gui_input"]
-[connection signal="color_pick_requested" from="Split/Scroll/Panel" to="." method="_on_pick_requested"]
-[connection signal="settings_changed" from="Split/Scroll/Panel" to="." method="_on_settings_changed"]
-[connection signal="file_selected" from="LoadDialog" to="." method="_on_load_file_selected"]
-[connection signal="file_selected" from="SaveDialog" to="." method="_on_save_file_selected"]
-[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
+[node name="LowerRightButtons" type="HBoxContainer" parent="UI" unique_id=2102491322]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+
+[node name="ToggleFullscreen" type="Button" parent="UI/LowerRightButtons" unique_id=269821339]
+layout_mode = 2
+text = "Windowed"
+
+[node name="Quit" type="Button" parent="UI/LowerRightButtons" unique_id=1554455853]
+layout_mode = 2
+text = "Quit"
+
+[node name="UpperRightButtons" type="HBoxContainer" parent="UI" unique_id=2102706398]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+
+[node name="MakeSuggestion" type="Button" parent="UI/UpperRightButtons" unique_id=1965043109]
+layout_mode = 2
+text = "Make Suggestion"
+
+[node name="HideGui" type="Button" parent="UI/UpperRightButtons" unique_id=130821890]
+layout_mode = 2
+text = "Hide Gui"
+
+[node name="MapOptionsPanel" type="Panel" parent="UI" unique_id=1610355586]
+custom_minimum_size = Vector2(300, 600)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=700108628]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.60468626, 0, 1.7549264)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=727868728]
+transform = Transform3D(0.65848535, -0.253429, -0.70864046, -0.36455423, 0.7163454, -0.5949368, 0.6584055, 0.650095, 0.37931424, 0, 0, 0)
+mesh = SubResource("BoxMesh_616h8")

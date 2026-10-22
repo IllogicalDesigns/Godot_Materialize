@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://hb34uhiw72w0"]
+
+[node name="Map" type="PanelContainer" unique_id=720125377]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1578872004]
+layout_mode = 2
+
+[node name="MapName" type="Label" parent="VBoxContainer" unique_id=250978044]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Map type"
+horizontal_alignment = 1
+
+[node name="MapPicture" type="TextureRect" parent="VBoxContainer" unique_id=1236840920]
+custom_minimum_size = Vector2(100, 100)
+layout_mode = 2
+expand_mode = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=673657754]
+layout_mode = 2
+
+[node name="Open" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1518542794]
+layout_mode = 2
+text = "Open"
+
+[node name="Save" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=1767372529]
+layout_mode = 2
+text = "Save"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer" unique_id=257838845]
+layout_mode = 2
+
+[node name="Preview" type="Button" parent="VBoxContainer/VBoxContainer" unique_id=647940139]
+layout_mode = 2
+text = "Preview"
+
+[node name="Create" type="Button" parent="VBoxContainer/VBoxContainer" unique_id=1926587715]
+layout_mode = 2
+text = "Create!"

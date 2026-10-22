@@ -71,6 +71,13 @@ static func defaults() -> Dictionary:
 			"mask_low": 0.0, "mask_high": 1.0, "height": 0.3,
 		},
 		"sample_blend": 0.5,
+		# Materialize's source row (Diffuse / Original Diffuse / Normal) and the
+		# preview Height Reveal Slider. Only the loaded diffuse is implemented
+		# for now; the reveal slider is a preview control, not an output setting.
+		"use_adjusted_diffuse": true,
+		"use_original_diffuse": false,
+		"use_normal": false,
+		"reveal": 1.0,
 	}
 
 ## Materialize maps the gain slider to an exponent before using it: positive
