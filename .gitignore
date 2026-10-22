@@ -1,0 +1,16 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Build / export output
+/export/
+builds/
+
+# Local scratch (ported Unity reference material is not committed)
+/tmp/
+*.log
+
+# Editor / OS noise
+*.orig
+*.rej
+.DS_Store
