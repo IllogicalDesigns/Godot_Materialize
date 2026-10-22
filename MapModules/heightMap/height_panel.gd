@@ -10,9 +10,11 @@ class_name HeightPanel
 ##                                                 "Default" "Details" "Displace"
 ##   "Frequency Contrast Equalizer"                7 vertical faders, -5..5, +
 ##                                                 "Default" "Cracks" "Funky"
-##   "Use Color Sample 1" + "Isolate Mask"         "Pick Color" + swatch, then
-##                                                 faders Hue Sat Lum Low High Height
-##   "Use Color Sample 2" ...                      same block
+##   "Color Sample 1" fold group:   header row = fold button +
+##                                  "Use Color Sample 1" + "Isolate Mask";
+##                                  body = "Pick Color" + swatch, then
+##                                  faders Hue Sat Lum Low High Height
+##   "Color Sample 2" fold group:   the same block
 ##   "Sample Blend"
 ##   "Final Gain" (-0.5..0.5) "Final Contrast" (-10..10) "Final Bias" (-1..1)
 ##   "Set as Height Map"
@@ -30,6 +32,15 @@ class_name HeightPanel
 ## `GuiHelper.Slider` shows the value in an editable text field next to each
 ## horizontal slider; here every slider gets a value label, including the
 ## vertical faders, which have no text field in Unity.
+##
+## The fold groups are port-only too: Unity has no fold control, and a sample's
+## swatch, "Pick Color", and faders are drawn only while `UseSample1` is on
+## (`HeightFromDiffuseGui.cs` lines 714-751, 760-797). Godot stacks the groups
+## in one column, so the two sample bodies are 110 px of faders each and push
+## "Set as Height Map" out of the panel. Each sample is therefore a
+## `CollapseGroup` (`ui/collapse_group.gd`): its header keeps the two
+## checkboxes reachable while the body is folded, and `Use Color Sample N` off
+## folds that sample, which is Unity's behaviour expressed as a fold.
 ##
 ## "Sample Spread" / "Sample Spread Boost" are Unity's Normal-mode sliders and
 ## are not drawn: the Normal source comes with Normal From Height.
@@ -61,19 +72,19 @@ const SLIDER_ROWS := [
 	["Column/ContrastGroup/Row/Faders/C1/Slider", ["contrasts", 1], "Column/ContrastGroup/Row/Faders/C1/Val"],
 	["Column/ContrastGroup/Row/Faders/C0/Slider", ["contrasts", 0], "Column/ContrastGroup/Row/Faders/C0/Val"],
 
-	["Column/Sample1Group/Row/Faders/H1/Slider", ["sample1", "hue"], "Column/Sample1Group/Row/Faders/H1/Val"],
-	["Column/Sample1Group/Row/Faders/S1/Slider", ["sample1", "sat"], "Column/Sample1Group/Row/Faders/S1/Val"],
-	["Column/Sample1Group/Row/Faders/L1/Slider", ["sample1", "lum"], "Column/Sample1Group/Row/Faders/L1/Val"],
-	["Column/Sample1Group/Row/Faders/ML1/Slider", ["sample1", "mask_low"], "Column/Sample1Group/Row/Faders/ML1/Val"],
-	["Column/Sample1Group/Row/Faders/MH1/Slider", ["sample1", "mask_high"], "Column/Sample1Group/Row/Faders/MH1/Val"],
-	["Column/Sample1Group/Row/Faders/SH1/Slider", ["sample1", "height"], "Column/Sample1Group/Row/Faders/SH1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/H1/Slider", ["sample1", "hue"], "Column/Sample1Group/Body/Row/Faders/H1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/S1/Slider", ["sample1", "sat"], "Column/Sample1Group/Body/Row/Faders/S1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/L1/Slider", ["sample1", "lum"], "Column/Sample1Group/Body/Row/Faders/L1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/ML1/Slider", ["sample1", "mask_low"], "Column/Sample1Group/Body/Row/Faders/ML1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/MH1/Slider", ["sample1", "mask_high"], "Column/Sample1Group/Body/Row/Faders/MH1/Val"],
+	["Column/Sample1Group/Body/Row/Faders/SH1/Slider", ["sample1", "height"], "Column/Sample1Group/Body/Row/Faders/SH1/Val"],
 
-	["Column/Sample2Group/Row/Faders/H2/Slider", ["sample2", "hue"], "Column/Sample2Group/Row/Faders/H2/Val"],
-	["Column/Sample2Group/Row/Faders/S2/Slider", ["sample2", "sat"], "Column/Sample2Group/Row/Faders/S2/Val"],
-	["Column/Sample2Group/Row/Faders/L2/Slider", ["sample2", "lum"], "Column/Sample2Group/Row/Faders/L2/Val"],
-	["Column/Sample2Group/Row/Faders/ML2/Slider", ["sample2", "mask_low"], "Column/Sample2Group/Row/Faders/ML2/Val"],
-	["Column/Sample2Group/Row/Faders/MH2/Slider", ["sample2", "mask_high"], "Column/Sample2Group/Row/Faders/MH2/Val"],
-	["Column/Sample2Group/Row/Faders/SH2/Slider", ["sample2", "height"], "Column/Sample2Group/Row/Faders/SH2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/H2/Slider", ["sample2", "hue"], "Column/Sample2Group/Body/Row/Faders/H2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/S2/Slider", ["sample2", "sat"], "Column/Sample2Group/Body/Row/Faders/S2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/L2/Slider", ["sample2", "lum"], "Column/Sample2Group/Body/Row/Faders/L2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/ML2/Slider", ["sample2", "mask_low"], "Column/Sample2Group/Body/Row/Faders/ML2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/MH2/Slider", ["sample2", "mask_high"], "Column/Sample2Group/Body/Row/Faders/MH2/Val"],
+	["Column/Sample2Group/Body/Row/Faders/SH2/Slider", ["sample2", "height"], "Column/Sample2Group/Body/Row/Faders/SH2/Val"],
 
 	["Column/BlendGroup/Blend", ["sample_blend"], "Column/BlendGroup/BlendVal"],
 
@@ -87,22 +98,33 @@ const CHECK_ROWS := [
 	["Column/SourceRow/UseDiffuse", ["use_adjusted_diffuse"]],
 	["Column/SourceRow/UseOriginal", ["use_original_diffuse"]],
 	["Column/SourceRow/UseNormal", ["use_normal"]],
-	["Column/Sample1Group/Top/Use1", ["sample1", "use"]],
-	["Column/Sample1Group/Top/Isolate1", ["sample1", "isolate"]],
-	["Column/Sample2Group/Top/Use2", ["sample2", "use"]],
-	["Column/Sample2Group/Top/Isolate2", ["sample2", "isolate"]],
+	["Column/Sample1Group/Header/Use1", ["sample1", "use"]],
+	["Column/Sample1Group/Header/Isolate1", ["sample1", "isolate"]],
+	["Column/Sample2Group/Header/Use2", ["sample2", "use"]],
+	["Column/Sample2Group/Header/Isolate2", ["sample2", "isolate"]],
 ]
+
+## sample settings key -> [fold group node path, isolate checkbox node path].
+## `Use Color Sample N` drives its fold group: Unity draws a sample's swatch,
+## "Pick Color", and faders only while `UseSampleN` is on, so the sample body
+## folds when the box goes off, and Isolate Mask is disabled with it
+## (`HeightFromDiffuseGui.cs` lines 714-751, 760-797, and `GUI.enabled` on the
+## isolate toggle, line 717).
+const SAMPLE_FOLDS := {
+	"sample1": ["Column/Sample1Group", "Column/Sample1Group/Header/Isolate1"],
+	"sample2": ["Column/Sample2Group", "Column/Sample2Group/Header/Isolate2"],
+}
 
 ## Rows: [color picker node path, settings path].
 const COLOR_ROWS := [
-	["Column/Sample1Group/Row/Left/Color1", ["sample1", "color"]],
-	["Column/Sample2Group/Row/Left/Color2", ["sample2", "color"]],
+	["Column/Sample1Group/Body/Row/Left/Color1", ["sample1", "color"]],
+	["Column/Sample2Group/Body/Row/Left/Color2", ["sample2", "color"]],
 ]
 
 ## Rows: [button node path, sample index].
 const PICK_ROWS := [
-	["Column/Sample1Group/Row/Left/Pick1", 1],
-	["Column/Sample2Group/Row/Left/Pick2", 2],
+	["Column/Sample1Group/Body/Row/Left/Pick1", 1],
+	["Column/Sample2Group/Body/Row/Left/Pick2", 2],
 ]
 
 ## Rows: [button node path, settings key, preset name]. Labels are Materialize's
@@ -145,6 +167,7 @@ func refresh() -> void:
 		(get_node(row[0]) as CheckBox).button_pressed = bool(_value(row[1]))
 	for row: Array in COLOR_ROWS:
 		(get_node(row[0]) as ColorPicker).color = _value(row[1])
+	_sync_folds()
 	_syncing = false
 
 ## The main scene picked a colour from a preview for one sample.
@@ -187,6 +210,9 @@ func _on_check_changed(toggled: bool, row: Array) -> void:
 		_enforce_source_row()
 	else:
 		_enforce_isolate(row)
+		# Unity draws a sample's body only while its Use box is on, so the fold
+		# group mirrors the setting, and Isolate Mask is disabled with the sample.
+		_sync_folds()
 	if not _syncing:
 		settings_changed.emit()
 
@@ -230,6 +256,17 @@ func _enforce_isolate(row: Array) -> void:
 	if bool(_settings[sample]["isolate"]):
 		var other := "sample2" if sample == "sample1" else "sample1"
 		_settings[other]["isolate"] = false
+
+## Push the sample settings into the fold groups. The body is open only while
+## `Use Color Sample N` is on (Unity draws the swatch, "Pick Color", and the
+## faders inside the `if (HFDS.UseSampleN)` block), so a folded body means the
+## sample is off, and "Isolate Mask" is greyed out with it, the way Unity's
+## `GUI.enabled` covers the isolate toggle.
+func _sync_folds() -> void:
+	for sample: String in SAMPLE_FOLDS:
+		var use := bool(_settings[sample]["use"])
+		(get_node(SAMPLE_FOLDS[sample][0]) as CollapseGroup).set_collapsed(not use)
+		(get_node(SAMPLE_FOLDS[sample][1]) as CheckBox).disabled = not use
 
 func _on_color_changed(color: Color, row: Array) -> void:
 	if _settings.is_empty():

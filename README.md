@@ -53,9 +53,10 @@ core/blit.gd                          pass framework (SubViewport + quad + Shade
 core/test_pattern.gd                  procedural stone source (no assets needed)
 shaders/mesh_preview.gdshader         the 3D preview material (map + Height Reveal Slider)
 ui/map_box.gd + scenes/map_panel.tscn the map box (preview, P C O S, Quick Save, Preview, Create, Clear)
+ui/collapse_group.gd                  foldable container (header row + foldable body), used by the Height panel's colour samples
 scenes/main.tscn + scripts/main.gd    the app shell: box row, panel slot, mesh, dialogs, toolbar, roadmap
 scenes/save_panel.tscn                the saving box (file format + Save all maps!)
-tests/                                blit probe, end-to-end height test, CPU reference, live preview check
+tests/                                blit probe, end-to-end height test, CPU reference, live preview check, panel fold check
 docs/how_materialize_works.md         algorithm + design notes
 ```
 
@@ -83,6 +84,18 @@ are disabled, and the status line names the Unity file each one still needs.
   omits them (Godot has no equivalent decoration).
 - Colour picking uses the map box preview's UV (the box forwards clicks as
   `preview_clicked`), not Materialize's 3D mesh raycast.
+- The two colour sample blocks are foldable containers (`ui/collapse_group.gd`).
+  Materialize has no fold control: `HeightFromDiffuseGui.cs` draws every control
+  at a fixed rect inside a 300 x 590 px window. Godot stacks the groups in one
+  column, and the open sample bodies demand 400 px of faders each, which widened
+  the panel to 541 px and pushed "Set as Height Map" past the window. Each
+  sample is now a `CollapseGroup`: its header keeps "Use Color Sample N" and
+  "Isolate Mask" reachable while the body is hidden, a sample's body folds when
+  its Use box goes off (Unity draws the swatch, "Pick Color", and the faders
+  only inside `if (HFDS.UseSampleN)`, lines 714-751, 760-797), and the fold
+  button opens a sample the user has switched off without writing settings.
+  Folded, the panel is 400 x 648 px; open it is 541 x 1450 px. The button labels
+  are `+` / `-`, because Godot's fallback font has no arrow glyphs.
 - BMP/TGA/TIFF export fall back to PNG with a status note: Unity used
   `FreeImage.dll`, which has no Godot equivalent.
 - A toolbar row (Load Diffuse, Stone Test Pattern, Resolution, Generate, Save Map,
@@ -100,12 +113,12 @@ MapModules/            one folder per texture map (the module contract in map_mo
   heightMap/           generator + shader + panel + module: the reference implementation
 core/                <- shared framework: blit.gd, test_pattern.gd
 shaders/             <- app-level shaders (the preview material), not per-map generators
-ui/                  <- map_box.gd (the box is generic, so it is not per-map)
+ui/                  <- map_box.gd + collapse_group.gd (generic widgets, so they are not per-map)
 docs/                <- how_materialize_works.md
 assets/cubemaps/       <- cube maps for the preview lighting (empty, deferred)
 assets/models/         <- preview meshes (the Unity FBX test objects, deferred)
 assets/textures/       <- stock maps (flat white / black / grey / normal, deferred)
-tests/                 <- framework probe + generator tests + live preview check
+tests/                 <- framework probe + generator tests + live preview check + panel fold check
 ```
 
 The six unported maps (Diffuse, Normal, Metallic, Smoothness, Edge, AO) get their
@@ -194,6 +207,7 @@ godot --path .                       # opens the app
 DISPLAY=:1 godot --path . res://tests/live_preview.tscn  # live mesh + panel chain, writes user://live_preview_*.png
 DISPLAY=:1 godot --path . res://tests/blit_probe.tscn    # framework probe (readback, HDR, repeat wrap, blur taps)
 DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes user://height_test/*.png
+godot --headless --path . res://tests/panel_fold.tscn     # colour sample fold layout check, no GPU
 ```
 
 The live preview test prints the map statistics and the panel chain checks; it also
