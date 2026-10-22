@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://ui/height_panel.tscn" id="2_panel"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -11,21 +12,100 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="Split" type="HSplitContainer" parent="."]
 layout_mode = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+split_offset = 420
 
-[node name="Title" type="Label" parent="VBox"]
+[node name="Left" type="VBoxContainer" parent="Split"]
 layout_mode = 2
-text = "Materialize - Godot port (skeleton)"
+size_flags_horizontal = 3
 
-[node name="SubTitle" type="Label" parent="VBox"]
+[node name="Toolbar" type="HBoxContainer" parent="Split/Left"]
 layout_mode = 2
 
-[node name="Grid" type="GridContainer" parent="VBox"]
+[node name="LoadButton" type="Button" parent="Split/Left/Toolbar"]
 layout_mode = 2
-columns = 4
+text = "Load diffuse"
+
+[node name="PatternButton" type="Button" parent="Split/Left/Toolbar"]
+layout_mode = 2
+text = "Stone test pattern"
+
+[node name="Resolution" type="OptionButton" parent="Split/Left/Toolbar"]
+layout_mode = 2
+
+[node name="GenerateButton" type="Button" parent="Split/Left/Toolbar"]
+layout_mode = 2
+text = "Generate"
+
+[node name="SaveButton" type="Button" parent="Split/Left/Toolbar"]
+layout_mode = 2
+text = "Save PNG"
+
+[node name="Status" type="Label" parent="Split/Left/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+text = "Ready"
+
+[node name="SourceTitle" type="Label" parent="Split/Left"]
+layout_mode = 2
+text = "Source (diffuse) - click to pick a sample colour"
+
+[node name="SourceRect" type="TextureRect" parent="Split/Left"]
+layout_mode = 2
+custom_minimum_size = Vector2(256, 256)
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 0
+interactive = true
+
+[node name="ResultTitle" type="Label" parent="Split/Left"]
+layout_mode = 2
+text = "Result (height map)"
+
+[node name="ResultRect" type="TextureRect" parent="Split/Left"]
+layout_mode = 2
+custom_minimum_size = Vector2(256, 256)
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Scroll" type="ScrollContainer" parent="Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Panel" type="VBoxContainer" parent="Split/Scroll" instance=ExtResource("2_panel")]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LoadDialog" type="FileDialog" parent="."]
+title = "Load a diffuse image"
+access_capabilities = 7
+filters = PackedStringArray("*.png,*.jpg,*.jpeg,*.exr,*.hdr;Image files")
+
+[node name="SaveDialog" type="FileDialog" parent="."]
+title = "Save height map"
+mode = 4
+access_capabilities = 7
+filters = PackedStringArray("*.png;PNG image")
+
+[node name="Timer" type="Timer" parent="."]
+one_shot = true
+
+[connection signal="pressed" from="Split/Left/Toolbar/LoadButton" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="Split/Left/Toolbar/PatternButton" to="." method="_on_pattern_pressed"]
+[connection signal="item_selected" from="Split/Left/Toolbar/Resolution" to="." method="_on_resolution_selected"]
+[connection signal="pressed" from="Split/Left/Toolbar/GenerateButton" to="." method="_on_generate_pressed"]
+[connection signal="pressed" from="Split/Left/Toolbar/SaveButton" to="." method="_on_save_pressed"]
+[connection signal="gui_input" from="Split/Left/SourceRect" to="." method="_on_source_gui_input"]
+[connection signal="settings_changed" from="Split/Scroll/Panel" to="." method="_on_settings_changed"]
+[connection signal="color_pick_requested" from="Split/Scroll/Panel" to="." method="_on_pick_requested"]
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
+[connection signal="file_selected" from="LoadDialog" to="." method="_on_load_file_selected"]
+[connection signal="file_selected" from="SaveDialog" to="." method="_on_save_file_selected"]

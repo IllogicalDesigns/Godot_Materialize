@@ -1,0 +1,584 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/height_panel.gd" id="1_panel"]
+
+[node name="HeightPanel" type="VBoxContainer"]
+custom_minimum_size = Vector2(340, 0)
+script = ExtResource("1_panel")
+
+[node name="Title" type="Label" parent="."]
+text = "Height From Diffuse"
+
+[node name="WeightsTitle" type="Label" parent="."]
+text = "Level weights"
+
+[node name="Weights" type="GridContainer" parent="."]
+columns = 3
+
+[node name="W0Name" type="Label" parent="Weights"]
+text = "Level 0 (sharp)"
+vertical_alignment = 1
+
+[node name="W0" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.15
+size_flags_horizontal = 3
+
+[node name="W0Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.15"
+horizontal_alignment = 2
+
+[node name="W1Name" type="Label" parent="Weights"]
+text = "Level 1"
+vertical_alignment = 1
+
+[node name="W1" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.19
+size_flags_horizontal = 3
+
+[node name="W1Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.19"
+horizontal_alignment = 2
+
+[node name="W2Name" type="Label" parent="Weights"]
+text = "Level 2"
+vertical_alignment = 1
+
+[node name="W2" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.3
+size_flags_horizontal = 3
+
+[node name="W2Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.30"
+horizontal_alignment = 2
+
+[node name="W3Name" type="Label" parent="Weights"]
+text = "Level 3"
+vertical_alignment = 1
+
+[node name="W3" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.5
+size_flags_horizontal = 3
+
+[node name="W3Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="W4Name" type="Label" parent="Weights"]
+text = "Level 4"
+vertical_alignment = 1
+
+[node name="W4" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.7
+size_flags_horizontal = 3
+
+[node name="W4Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.70"
+horizontal_alignment = 2
+
+[node name="W5Name" type="Label" parent="Weights"]
+text = "Level 5"
+vertical_alignment = 1
+
+[node name="W5" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 0.9
+size_flags_horizontal = 3
+
+[node name="W5Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.90"
+horizontal_alignment = 2
+
+[node name="W6Name" type="Label" parent="Weights"]
+text = "Level 6 (wide)"
+vertical_alignment = 1
+
+[node name="W6" type="HSlider" parent="Weights"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.01
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="W6Val" type="Label" parent="Weights"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="ContrastsTitle" type="Label" parent="."]
+text = "Level contrast"
+
+[node name="Contrasts" type="GridContainer" parent="."]
+columns = 3
+
+[node name="C0Name" type="Label" parent="Contrasts"]
+text = "Level 0"
+vertical_alignment = 1
+
+[node name="C0" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C0Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C1Name" type="Label" parent="Contrasts"]
+text = "Level 1"
+vertical_alignment = 1
+
+[node name="C1" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C1Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C2Name" type="Label" parent="Contrasts"]
+text = "Level 2"
+vertical_alignment = 1
+
+[node name="C2" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C2Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C3Name" type="Label" parent="Contrasts"]
+text = "Level 3"
+vertical_alignment = 1
+
+[node name="C3" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C3Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C4Name" type="Label" parent="Contrasts"]
+text = "Level 4"
+vertical_alignment = 1
+
+[node name="C4" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C4Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C5Name" type="Label" parent="Contrasts"]
+text = "Level 5"
+vertical_alignment = 1
+
+[node name="C5" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C5Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="C6Name" type="Label" parent="Contrasts"]
+text = "Level 6"
+vertical_alignment = 1
+
+[node name="C6" type="HSlider" parent="Contrasts"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -4.0
+max_value = 4.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="C6Val" type="Label" parent="Contrasts"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="OutputTitle" type="Label" parent="."]
+text = "Output"
+
+[node name="OutputGrid" type="GridContainer" parent="."]
+columns = 3
+
+[node name="FCName" type="Label" parent="OutputGrid"]
+text = "Contrast"
+vertical_alignment = 1
+
+[node name="FC" type="HSlider" parent="OutputGrid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 4.0
+step = 0.01
+value = 1.5
+size_flags_horizontal = 3
+
+[node name="FCVal" type="Label" parent="OutputGrid"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.50"
+horizontal_alignment = 2
+
+[node name="FBName" type="Label" parent="OutputGrid"]
+text = "Bias"
+vertical_alignment = 1
+
+[node name="FB" type="HSlider" parent="OutputGrid"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -0.5
+max_value = 0.5
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="FBVal" type="Label" parent="OutputGrid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="FGName" type="Label" parent="OutputGrid"]
+text = "Gain"
+vertical_alignment = 1
+
+[node name="FG" type="HSlider" parent="OutputGrid"]
+custom_minimum_size = Vector2(120, 0)
+min_value = -1.0
+max_value = 1.0
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="FGVal" type="Label" parent="OutputGrid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="Presets" type="HBoxContainer" parent="."]
+
+[node name="WDefault" type="Button" parent="Presets"]
+text = "weights: default"
+
+[node name="WDetail" type="Button" parent="Presets"]
+text = "detail"
+
+[node name="WDisplace" type="Button" parent="Presets"]
+text = "displace"
+
+[node name="CDefault" type="Button" parent="Presets"]
+text = "contrast: default"
+
+[node name="CCrackedMud" type="Button" parent="Presets"]
+text = "cracked mud"
+
+[node name="CFunky" type="Button" parent="Presets"]
+text = "funky"
+
+[node name="Sample1Title" type="Label" parent="."]
+text = "Sample 1"
+
+[node name="Sample1Top" type="HBoxContainer" parent="."]
+
+[node name="Use1" type="CheckBox" parent="Sample1Top"]
+text = "Use"
+
+[node name="Isolate1" type="CheckBox" parent="Sample1Top"]
+text = "Isolate"
+
+[node name="Pick1" type="Button" parent="Sample1Top"]
+text = "Pick"
+
+[node name="Color1" type="ColorPicker" parent="Sample1Top"]
+custom_minimum_size = Vector2(48, 24)
+edit_alpha = false
+sliders_visible = false
+presets_visible = false
+can_add_swatches = false
+
+[node name="Sample1Grid" type="GridContainer" parent="."]
+columns = 3
+
+[node name="H1Name" type="Label" parent="Sample1Grid"]
+text = "Hue weight"
+vertical_alignment = 1
+
+[node name="H1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="H1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="S1Name" type="Label" parent="Sample1Grid"]
+text = "Sat weight"
+vertical_alignment = 1
+
+[node name="S1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 0.5
+size_flags_horizontal = 3
+
+[node name="S1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="L1Name" type="Label" parent="Sample1Grid"]
+text = "Lum weight"
+vertical_alignment = 1
+
+[node name="L1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 0.2
+size_flags_horizontal = 3
+
+[node name="L1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.20"
+horizontal_alignment = 2
+
+[node name="ML1Name" type="Label" parent="Sample1Grid"]
+text = "Mask low"
+vertical_alignment = 1
+
+[node name="ML1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="ML1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="MH1Name" type="Label" parent="Sample1Grid"]
+text = "Mask high"
+vertical_alignment = 1
+
+[node name="MH1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="MH1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="SH1Name" type="Label" parent="Sample1Grid"]
+text = "Sample height"
+vertical_alignment = 1
+
+[node name="SH1" type="HSlider" parent="Sample1Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+value = 0.5
+size_flags_horizontal = 3
+
+[node name="SH1Val" type="Label" parent="Sample1Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="Sample2Title" type="Label" parent="."]
+text = "Sample 2"
+
+[node name="Sample2Top" type="HBoxContainer" parent="."]
+
+[node name="Use2" type="CheckBox" parent="Sample2Top"]
+text = "Use"
+
+[node name="Isolate2" type="CheckBox" parent="Sample2Top"]
+text = "Isolate"
+
+[node name="Pick2" type="Button" parent="Sample2Top"]
+text = "Pick"
+
+[node name="Color2" type="ColorPicker" parent="Sample2Top"]
+custom_minimum_size = Vector2(48, 24)
+edit_alpha = false
+sliders_visible = false
+presets_visible = false
+can_add_swatches = false
+
+[node name="Sample2Grid" type="GridContainer" parent="."]
+columns = 3
+
+[node name="H2Name" type="Label" parent="Sample2Grid"]
+text = "Hue weight"
+vertical_alignment = 1
+
+[node name="H2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="H2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="S2Name" type="Label" parent="Sample2Grid"]
+text = "Sat weight"
+vertical_alignment = 1
+
+[node name="S2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 0.5
+size_flags_horizontal = 3
+
+[node name="S2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="L2Name" type="Label" parent="Sample2Grid"]
+text = "Lum weight"
+vertical_alignment = 1
+
+[node name="L2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 2.0
+step = 0.05
+value = 0.2
+size_flags_horizontal = 3
+
+[node name="L2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.20"
+horizontal_alignment = 2
+
+[node name="ML2Name" type="Label" parent="Sample2Grid"]
+text = "Mask low"
+vertical_alignment = 1
+
+[node name="ML2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+size_flags_horizontal = 3
+
+[node name="ML2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="MH2Name" type="Label" parent="Sample2Grid"]
+text = "Mask high"
+vertical_alignment = 1
+
+[node name="MH2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+value = 1.0
+size_flags_horizontal = 3
+
+[node name="MH2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="SH2Name" type="Label" parent="Sample2Grid"]
+text = "Sample height"
+vertical_alignment = 1
+
+[node name="SH2" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+value = 0.3
+size_flags_horizontal = 3
+
+[node name="SH2Val" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.30"
+horizontal_alignment = 2
+
+[node name="BLName" type="Label" parent="Sample2Grid"]
+text = "Sample blend"
+vertical_alignment = 1
+
+[node name="BL" type="HSlider" parent="Sample2Grid"]
+custom_minimum_size = Vector2(120, 0)
+max_value = 1.0
+step = 0.01
+value = 0.5
+size_flags_horizontal = 3
+
+[node name="BLVal" type="Label" parent="Sample2Grid"]
+custom_minimum_size = Vector2(40, 0)
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="Hint" type="Label" parent="."]
+text = "Pick a colour from the source image to feed a sample."
