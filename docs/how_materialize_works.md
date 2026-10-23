@@ -320,11 +320,86 @@ gamma-agnostic, so dropping `_GamaCorrection` changes the exact pixel values
 (not the look) and removes a whole class of conversion bugs. Pixel-exact parity
 with Unity was explicitly not a goal.
 
-## 6. Skipped / deferred in this commit
+## 6. Normal From Height
+
+Unity: `Scripts/NormalFromHeightGui.cs` (`ProcessHeight()` + `ProcessNormal()`),
+with `Shaders/Resources/Blit_Shader.shader` (blur pass 1, normal pass 3, combine
+pass 4). Godot: `MapModules/normalMap/normal_from_height.gd` +
+`MapModules/normalMap/normal_from_height.gdshader`, passes 1, 3 and 4, mirroring
+Unity's pass indices.
+
+The core idea: **a normal map is the height map's slope, read at seven scales**.
+The sobel gives the slope at pixel scale; each pyramid level is a coarser slope;
+the Frequency Equalizer weights decide which scales survive. `Smooth` keeps the
+broad scales and `Crisp` the sharp ones, so the same stone wall reads as rounded
+relief or as crisp grit without touching the source.
+
+Four stages:
+
+### Stage 1 — light blur (pass 1, four passes)
+
+The desaturated diffuse (when "Shape from Diffuse" is on) is blurred by the
+Slope Blur window — 201 taps at spread 1, then spread 3, horizontal and vertical.
+The result is the broad shape of the lighting: the reference the sobel normal is
+blended towards by `Shape Recognition`. The blurs run at contrast 1.0;
+`Pre Contrast` acts in the normal pass.
+
+Godot shader loops need constant bounds, so the shader carries two kernels: the
+201-tap `wide` window for the Slope Blur slider, and the 9-tap pyramid kernel
+shared with the height tool.
+
+### Stage 2 — normal from height (pass 3)
+
+The sobel slopes of the height map:
+
+```
+slope_x = (1, 0, ddx * PreContrast)
+slope_y = (0, 1, -ddy * PreContrast)
+normal  = normalize(cross(slope_x, slope_y))
+```
+
+`Pre Contrast` is the slope strength. Godot's UV points down, so the vertical
+slope is the negated screen slope; that keeps the normal pointing up out of a
+flat surface, and a flat source stores `0.5, 0.5, 1.0` — the neutral normal map.
+
+The shape term: `shape_height = (light - lightBlur + ShapeBias) * 2 - 1` is the
+height the light reference carries. The light direction from `Light Rotation`
+(-3.14..3.14, Unity's slider is already in radians) is tilted by that height, and
+`dot(normal, cross(lightDir, (0,0,1))) * cross(lightDir, (0,0,1))` adds the slope
+the light reference sees. `Shape Recognition` lerps the sobel normal towards the
+shape; the result is stored signed, `normal * 0.5 + 0.5`, so 0.5 is neutral.
+
+### Stage 3 — the normal pyramid (pass 1, twelve passes)
+
+Six progressive separable blurs of the normal map, the same raised-cosine 9-tap
+kernel as the height pyramid with the spread ladder
+`1, 1 + e, 1 + 3e, 1 + 7e, 1 + 15e, 1 + 31e` where `e = avg(size) / 1024`.
+`Desaturate` stays off: the RGB normals must survive, not collapse to grey.
+Level 0 rides out as the pyramid's base, so seven scales go to the combine.
+
+### Stage 4 — combine (pass 4)
+
+The seven levels blend by the equalizer weights, divide by the weight sum (a
+normal map has no grey to normalise against), decode back to a vector
+(`* 2 - 1`) and normalise. `Angularity` pulls the normals towards the
+`Angular Intensity` light direction — Materialize's trick for making relief read
+as baked shading — `Final Contrast` multiplies xy and raises z to the same power,
+then the vector is normalised once more and re-signed. Unity's combine ends with
+`mainTex.y = 1 - mainTex.y` unless `_FlipNormalY` is set (Maya-style maps); the
+port writes the Y the sobel computed, which is the OpenGL green that Godot and
+the mesh preview read, so no flip is needed.
+
+The Normal Reveal Slider blends the shaded preview towards the raw map colours in
+`shaders/mesh_preview.gdshader` (`is_normal` mode), so dragging it costs no pass,
+exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
+
+## 7. Skipped / deferred in this commit
 
 - **"Use Normal as input"** for the height tool (Unity's `ProcessNormal()` and
-  the Spread / SpreadBoost normal path, `_HeightFromNormal`). The Godot app has
-  no normal map source yet; this returns when Normal From Height is ported.
+  the Spread / SpreadBoost normal path, `_HeightFromNormal`). Normal From Height
+  is ported, so a normal map now exists in the app, but the height generator
+  still reads only the diffuse source; wiring its normal-input path is the next
+  step, and Unity's `_HeightFromNormal` shader path is the reference for it.
 - **Preview on a 3D mesh**: the map box previews and the `MeshInstance3D` show the
   live map. The mesh material (`shaders/mesh_preview.gdshader`) mixes the map
   towards mid-grey by the Height Reveal Slider and splits source / edited at the
@@ -341,7 +416,7 @@ with Unity was explicitly not a goal.
   need PNG conversion. A procedural stone test pattern (`core/test_pattern.gd`)
   stands in for a source image.
 
-## 7. Files in the port
+## 8. Files in the port
 
 - `MapModules/map_module.gd` — the module contract, shared by every map module.
 - `MapModules/heightMap/height_from_diffuse.gdshader` — passes 0 SAMPLE, 1 BLUR,
@@ -365,6 +440,22 @@ with Unity was explicitly not a goal.
 - `MapModules/diffuseMap/diffuse_map_module.gd` — binds the generator and the
   panel to the module contract, and adds the two preview hooks
   (`source_map_type()`, `preview_split()`).
+- `MapModules/normalMap/normal_from_height.gdshader` — pass 1 BLUR (the two
+  kernels: 201-tap `wide` window for Slope Blur, 9-tap pyramid kernel), pass 3
+  NORMAL (sobel + `Shape Recognition` shape term), pass 4 COMBINE (equalizer
+  weights, angularity, final contrast).
+- `MapModules/normalMap/normal_from_height.gd` — settings dict with Materialize's
+  defaults, the four presets' weight rows, and the generate coroutine (light blur
+  → normal → six pyramid levels → combine).
+- `MapModules/normalMap/normal_panel.gd` + `normal_panel.tscn` — the Normal tool
+  panel, laid out like `NormalFromHeightGui.cs` in window order: Normal Reveal
+  Slider, Pre Contrast, the 7-fader Frequency Equalizer with Default / Smooth /
+  Crisp / Mids, Angular Intensity, Angularity, Shape from Diffuse, Shape
+  Recognition, Light Rotation, Slope Blur, Shape Bias, Final Contrast, "Set as
+  Normal Map".
+- `MapModules/normalMap/normal_map_module.gd` — binds the generator and the panel
+  to the module contract, reads the height map as its source, and takes the map
+  store through `set_inputs` for "Shape from Diffuse".
 - `core/blit.gd` — the pass framework (setup, blit, flat, format helpers).
 - `core/test_pattern.gd` — procedural stone wall source (mortar, per-brick tone,
   bevel at joints, grain, top-down lighting gradient) so the average subtraction
@@ -398,8 +489,17 @@ with Unity was explicitly not a goal.
 - `tests/diffuse_live.gd` + `tests/diffuse_live.tscn` — drives the real app for
   Diffuse: panel swap, split-screen uniforms, generation from the pristine
   source, "Set as Diffuse", Clear restore.
+- `tests/normal_cpu.gd` + `tests/normal_cpu.tscn` — CPU-only mirror of the whole
+  Normal pass chain (light blur, sobel normal, six pyramid levels, combine) on the
+  stone test pattern at the shell's 512 resolution; prints the statistics the
+  live test asserts and writes `user://normal_cpu/*.png`.
+- `tests/normal_live.gd` + `tests/normal_live.tscn` — drives the real app for
+  Normal: resolution switch, panel wiring, the Slope Blur / Final Contrast /
+  Shape Bias sliders, the Smooth and Crisp presets, "Set as Normal Map", and the
+  Normal Reveal Slider on the mesh preview; asserts the GPU map matches the CPU
+  reference.
 
-## 8. Testing status
+## 9. Testing status
 
 The GPU passes have been run on the user's machine (Vulkan 1.4.341, Forward Plus,
 NVIDIA RTX 3080). What is verified:
@@ -483,6 +583,7 @@ NVIDIA RTX 3080). What is verified:
 
 What is not verified: the visual result of the maps on the mesh (the screenshots
 need a human eye), the exact stacked-blur tail Unity produces (see the stacking
-note), and everything that depends on unported maps (Normal, Metallic,
-Smoothness, Edge, AO, alignment, seamless tiling, DNMST preview, cubemap lighting,
-project save, BMP/TIFF/TGA export).
+note), and everything that depends on unported maps (Metallic, Smoothness, Edge,
+AO, alignment, seamless tiling, DNMST preview, cubemap lighting, project save,
+BMP/TIFF/TGA export), plus the height tool's "Use Normal as input" path, which
+the ported normal map now makes possible.

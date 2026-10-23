@@ -37,10 +37,10 @@ and a project file (XML) stores every tool's settings plus the map paths.
 
 ## Current status
 
-The app is laid out like Materialize's window, and **Height From Diffuse and Edit
-Diffuse are ported and running on the GPU**: the stone test pattern feeds the
-source, the panel's sliders regenerate the map, and the generated map goes live
-onto the `MeshInstance3D` preview.
+The app is laid out like Materialize's window, and **Height From Diffuse, Edit
+Diffuse and Normal From Height are ported and running on the GPU**: the stone test
+pattern feeds the source, the panel's sliders regenerate the map, and the generated
+map goes live onto the `MeshInstance3D` preview.
 
 ```
 MapModules/map_module.gd              the module contract (map_type/settings/panel_scene/generate/preview)
@@ -54,6 +54,14 @@ MapModules/diffuseMap/                the Diffuse module:
   edit_diffuse.gdshader              passes: BLUR / EDIT (fragEditDiffuse)
   diffuse_panel.tscn + .gd           the tool panel, laid out like EditDiffuseGui.cs
   diffuse_map_module.gd              the module that binds the generator and the panel
+MapModules/normalMap/                 the Normal module:
+  normal_from_height.gd               settings, the 4 equalizer presets, generate() coroutine
+  normal_from_height.gdshader         BLUR (201-tap and 9-tap kernels) / NORMAL (sobel)
+                                      / COMBINE (the 7-level pyramid blend)
+  normal_panel.tscn + .gd            the tool panel, laid out like NormalFromHeightGui.cs
+  normal_map_module.gd               the module: `source_map_type()` is "height", and
+                                     `set_inputs(maps)` supplies the pristine source for
+                                     "Shape from Diffuse"
 core/blit.gd                          pass framework (SubViewport + quad + ShaderMaterial)
 core/test_pattern.gd                  procedural stone source (no assets needed)
 shaders/mesh_preview.gdshader         the 3D preview material (map + Height Reveal Slider + Diffuse split)
@@ -61,7 +69,9 @@ ui/map_box.gd + scenes/map_panel.tscn the map box (preview, P C O S, Quick Save,
 ui/collapse_group.gd                  foldable container (header row + foldable body), used by the Height panel's colour samples
 scenes/main.tscn + scripts/main.gd    the app shell: box row, panel slot, mesh, dialogs, toolbar, roadmap
 scenes/save_panel.tscn                the saving box (file format + Save all maps!)
-tests/                                blit probe, end-to-end height + diffuse tests, CPU references, live preview check, panel fold check
+tests/                                blit probe, end-to-end height + diffuse tests, CPU references
+                                      (height, diffuse, normal), live preview checks
+                                      (height, diffuse, normal), panel fold check
 docs/how_materialize_works.md         algorithm + design notes
 ```
 
@@ -88,9 +98,10 @@ The app: load a diffuse image (PNG/JPG) or press **Stone Test Pattern**, pick a
 resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool regenerates
 live (debounced), the map box preview and the mesh update, and **Save Map** writes a
 PNG. Clicking a box's **Create** makes that map active: its panel slots into
-`MapOptionsPanel` and its map goes onto the mesh. Height (1st) and Diffuse (2nd)
-are ported, so their Create buttons are live; the unported maps' Create buttons
-are disabled, and the status line names the Unity file each one still needs.
+`MapOptionsPanel` and its map goes onto the mesh. Height (1st), Diffuse (2nd) and
+Normal (3rd) are ported, so their Create buttons are live; the unported maps'
+Create buttons are disabled, and the status line names the Unity file each one
+still needs.
 Quick Save writes `user://materialize<suffix>.png` (Materialize appends the map
 suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
 `maps["diffuse_original"]` (Unity's `_DiffuseMapOriginal`) beside the edited
@@ -123,7 +134,8 @@ suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
 - A toolbar row (Load Diffuse, Stone Test Pattern, Resolution, Generate, Save Map,
   status) is port-only: Materialize's window has no status line.
 - "Use Normal as input" swaps the sample controls for Spread/SpreadBoost in Unity;
-  it is not implemented, since Normal From Height is not ported.
+  it is not implemented. Normal From Height is ported, so a normal map now exists
+  in the app, but the height generator still reads only the diffuse source.
 
 ## Repository layout
 
@@ -134,6 +146,8 @@ scripts/               the app shell script
 MapModules/            one folder per texture map (the module contract in map_module.gd)
   heightMap/           generator + shader + panel + module: the reference implementation
   diffuseMap/          generator + shader + panel + module: the second ported tool
+  normalMap/           generator + shader + panel + module: the third ported tool,
+                       the first one that reads another generated map (the height map)
 core/                <- shared framework: blit.gd, test_pattern.gd
 shaders/             <- app-level shaders (the preview material), not per-map generators
 ui/                  <- map_box.gd + collapse_group.gd (generic widgets, so they are not per-map)
@@ -146,9 +160,10 @@ tests/                 <- framework probe + generator tests + live preview check
 
 Each map lives in its own `MapModules/<map>Map/` folder once ported; the roadmap
 print in `scripts/main.gd` lists which Unity file each one comes from. Height
-(1st) and Diffuse (2nd) are ported; Normal, Metallic, Smoothness, Edge, AO are
-next. Diffuse uses the same module contract plus two preview hooks
-(`source_map_type()`, `preview_split()`), described in
+(1st), Diffuse (2nd) and Normal (3rd) are ported; Metallic, Smoothness, Edge, AO
+are next. Diffuse uses the module contract plus two preview hooks
+(`source_map_type()`, `preview_split()`), and Normal adds `set_inputs(maps)` to
+read the pristine source for "Shape from Diffuse"; all are described in
 `docs/how_materialize_works.md`.
 
 ## Unity -> Godot mapping
@@ -172,8 +187,9 @@ next. Diffuse uses the same module contract plus two preview hooks
 Design note: each map lives in `MapModules/<map>Map/` as a `MapModule` node
 (`map_type()`, `map_title()`, `save_suffix()`, `settings()`, `panel_scene()`,
 `generate(source, blit)`, `preview(map)`, `create_available(maps)`, `set_map()`,
-`clear_map()`, plus the preview hooks `source_map_type()` and `preview_split()`)
-wrapping a generator resource class that exposes `settings` (a
+`clear_map()`, plus the preview hooks `source_map_type()` and `preview_split()`
+and the extra-map hook `set_inputs(maps)`) wrapping a generator resource class
+that exposes `settings` (a
 `Dictionary` with the same slider names the Unity GUI uses). The app shell owns the
 `Blit` node, the source image, the map store, the panel slot, and the mesh, so a
 module never touches shared state; a new map module plugs in without touching the
@@ -251,6 +267,8 @@ DISPLAY=:1 godot --path . res://tests/height_test.tscn   # end-to-end, writes us
 DISPLAY=:1 godot --path . res://tests/diffuse_cpu.tscn   # CPU reference of fragBlur + fragEditDiffuse, no GPU
 DISPLAY=:1 godot --path . res://tests/diffuse_test.tscn  # end-to-end, writes user://diffuse_test/*.png
 DISPLAY=:1 godot --path . res://tests/diffuse_live.tscn  # live split-screen preview + panel chain
+godot --headless --path . res://tests/normal_cpu.tscn    # CPU mirror of the Normal pass chain, ~3 min at 512, no GPU
+DISPLAY=:1 godot --path . res://tests/normal_live.tscn   # live Normal chain at 512, asserted against the CPU mirror
 godot --headless --path . res://tests/panel_fold.tscn     # colour sample fold layout check, no GPU
 ```
 

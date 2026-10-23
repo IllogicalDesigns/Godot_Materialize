@@ -30,11 +30,29 @@ uniform highp float reveal = 1.0;
 uniform highp float split_reveal = 0.0;
 uniform highp float roughness = 0.6;
 
+// Normal map preview mode: the map is tangent-space normal data, so the mesh
+// shades it. Materialize's `Normal_From_Height_Preview.shader` lerps the
+// `lightDot` shading towards the raw normal colours by `_Slider` (the Normal
+// Reveal Slider), and the port blends the same way. `PREVIEW_LIGHT` stands in
+// for the `_LightDir` Unity sets from a script.
+uniform highp float is_normal = 0.0;
+const vec3 PREVIEW_LIGHT = normalize(vec3(0.4, 0.4, 0.85));
+
 void fragment() {
 	// A null texture samples as black, so the shell supplies a flat grey
 	// texture when a map is cleared: mixing grey with grey is grey.
 	vec3 sampled = texture(map, UV).rgb;
-	if (split_reveal > 0.0) {
+
+	if (is_normal > 0.5) {
+		// Signed normal storage: 0.5 is neutral, so the map decodes to the
+		// -1..1 vector it holds. Shaded relief at reveal 0, raw colours at
+		// reveal 1, the same blend Materialize's preview uses.
+		vec3 normal = normalize(sampled * 2.0 - 1.0);
+		float light_dot = dot(normal, PREVIEW_LIGHT) * 0.5 + 0.5;
+		light_dot *= light_dot;
+		ALBEDO = vec3(0.0, 0.0, 0.0);
+		EMISSION = mix(vec3(light_dot, light_dot, light_dot), sampled, vec3(reveal));
+	} else if (split_reveal > 0.0) {
 		// Diffuse Reveal Slider: the source image left of the seam, the
 		// edited map right of it. The seam runs along UV.x, the same way
 		// Unity's split preview on the test object works.

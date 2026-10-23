@@ -35,7 +35,7 @@ const MAP_BOXES: Array[Dictionary] = [
 		"module": "MapModules/diffuseMap/", "status": "ported (second tool)"},
 	{"type": "normal", "title": "Normal Map", "create": "Create",
 		"unity": "Scripts/NormalFromHeightGui.cs + Shaders/Resources/Blit_Normal_From_Height.shader",
-		"module": "MapModules/normalMap/", "status": "not started"},
+		"module": "MapModules/normalMap/", "status": "ported (third tool)"},
 	{"type": "metallic", "title": "Metallic Map", "create": "Create",
 		"unity": "Scripts/MetallicGui.cs + Shaders/Resources/Blit_Metallic.shader",
 		"module": "MapModules/metallicMap/", "status": "not started"},
@@ -143,6 +143,7 @@ func _ready() -> void:
 
 	modules["height"] = _add_height_module()
 	modules["diffuse"] = _add_diffuse_module()
+	modules["normal"] = _add_normal_module()
 
 	for index in MAP_BOXES.size():
 		var spec: Dictionary = MAP_BOXES[index]
@@ -221,6 +222,12 @@ func _add_diffuse_module() -> MapModule:
 	module.map_changed.connect(_on_map_changed)
 	return module
 
+func _add_normal_module() -> MapModule:
+	var module := NormalMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
 ## Make one map active: its panel goes into `MapOptionsPanel`, and its map goes
 ## onto the mesh. Panels are built once and reused, so slider state survives
 ## switching maps.
@@ -228,6 +235,8 @@ func _activate(module: MapModule) -> void:
 	_active = module
 	_mesh_map = module.map_type()
 
+	# TODO crashes here with this bug \/
+	# Trying to assign invalid previously freed instance.
 	var panel: Control = _panels.get(module.map_type())
 	if panel == null:
 		panel = module.panel_scene().instantiate()
@@ -238,7 +247,11 @@ func _activate(module: MapModule) -> void:
 		panel.call("setup", module.settings())
 		panel.connect("settings_changed", _on_settings_changed)
 		panel.connect("apply_requested", _on_apply_requested)
-		panel.connect("color_pick_requested", _on_pick_requested)
+		# Colour picking belongs to the panels that sample colours from the
+		# source (Height's Color Samples), so the connection is guarded the same
+		# way as the preview signal.
+		if panel.has_signal("color_pick_requested"):
+			panel.connect("color_pick_requested", _on_pick_requested)
 		if panel.has_signal("preview_changed"):
 			panel.connect("preview_changed", _on_preview_changed)
 
@@ -265,6 +278,10 @@ func _generate() -> void:
 	var size := source.get_size()
 	_set_status("Generating %d x %d..." % [size.x, size.y])
 
+	# Tools that read more than their source map (Normal From Height reads the
+	# pristine source for "Shape from Diffuse") get the map store before the
+	# pass chain runs.
+	_active.set_inputs(maps)
 	await _active.generate(source, blit)
 
 	_busy = false
@@ -304,6 +321,9 @@ func _flat_texture(value: float) -> ImageTexture:
 ## test object, so the box's Preview button is what selects it.
 func _set_mesh_map(map_type: String) -> void:
 	_mesh_map = map_type
+	# A normal map is tangent-space data, so the mesh shades it instead of
+	# using it as albedo (`shaders/mesh_preview.gdshader` `is_normal`).
+	_mesh_material.set_shader_parameter("is_normal", 1.0 if map_type == "normal" else 0.0)
 	var module: MapModule = modules.get(map_type)
 	var image: Image = maps.get(map_type)
 	if image == null:

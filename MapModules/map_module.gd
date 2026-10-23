@@ -32,6 +32,15 @@ signal map_changed(map_type: String, image: Image)
 
 var map: Image
 
+## Extra map inputs the shell hands to a tool that reads more than the map its
+## `source_map_type()` picks. Normal From Height lights the surface from the
+## pristine source for "Shape from Diffuse", so the shell passes the map store
+## in before every generation. The reference is not copied.
+var inputs: Dictionary = {}
+
+func set_inputs(maps: Dictionary) -> void:
+	inputs = maps
+
 func map_type() -> String:
 	push_error("%s does not implement map_type()" % name)
 	return ""
