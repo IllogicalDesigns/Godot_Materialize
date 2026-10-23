@@ -9,8 +9,9 @@ extends Node3D
 ## 3D preview mesh. Every widget it wires is an `@export` assigned in
 ## `scenes/main.tscn`, so this script holds no node paths (`CODING_RULES.md`).
 ## Each texture map lives in its own module under `MapModules/` - see
-## `MapModules/map_module.gd`. Only Height is ported so far; its module is
-## `MapModules/heightMap/`.
+## `MapModules/map_module.gd`. Height, Diffuse, Normal and Metallic are ported
+## (`MapModules/heightMap/`, `MapModules/diffuseMap/`, `MapModules/normalMap/`,
+## `MapModules/metallicMap/`); the rest are the roadmap rows in `MAP_BOXES`.
 ##
 ## Clicking a box's Create button makes that map active: its panel slots into
 ## `MapOptionsPanel`, its map feeds the `MeshInstance3D` preview, and the mesh
@@ -46,7 +47,7 @@ const MAP_BOXES: Array[Dictionary] = [
 		"module": "MapModules/normalMap/", "status": "ported (third tool)"},
 	{"type": "metallic", "title": "Metallic Map", "create": "Create",
 		"unity": "Scripts/MetallicGui.cs + Shaders/Resources/Blit_Metallic.shader",
-		"module": "MapModules/metallicMap/", "status": "not started"},
+		"module": "MapModules/metallicMap/", "status": "ported (fourth tool)"},
 	{"type": "smoothness", "title": "Smoothness Map", "create": "Create",
 		"unity": "Scripts/SmoothnessGui.cs + Shaders/Resources/Blit_Smoothness.shader",
 		"module": "MapModules/smoothnessMap/", "status": "not started"},
@@ -161,6 +162,7 @@ func _ready() -> void:
 	modules["height"] = _add_height_module()
 	modules["diffuse"] = _add_diffuse_module()
 	modules["normal"] = _add_normal_module()
+	modules["metallic"] = _add_metallic_module()
 
 	for index in MAP_BOXES.size():
 		var spec: Dictionary = MAP_BOXES[index]
@@ -241,6 +243,12 @@ func _add_diffuse_module() -> MapModule:
 
 func _add_normal_module() -> MapModule:
 	var module := NormalMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
+func _add_metallic_module() -> MapModule:
+	var module := MetallicMapModule.new()
 	add_child(module)
 	module.map_changed.connect(_on_map_changed)
 	return module

@@ -1,0 +1,334 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://MapModules/metallicMap/metallic_panel.gd" id="1_panel"]
+[ext_resource type="Script" path="res://ui/fader_group.gd" id="2_fader"]
+
+[node name="MetallicPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "use_edited_check", "use_original_check", "metal_color_picker", "pick_color_button", "weight_faders", "blur_size_slider", "blur_size_label", "overlay_blur_slider", "overlay_blur_label", "high_pass_slider", "high_pass_label", "final_contrast_slider", "final_contrast_label", "final_bias_slider", "final_bias_label", "set_button")]
+custom_minimum_size = Vector2(340, 0)
+script = ExtResource("1_panel")
+reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
+reveal_label = NodePath("ScrollContainer/Column/RevealGroup/RevealVal")
+use_edited_check = NodePath("ScrollContainer/Column/SourceRow/UseEdited")
+use_original_check = NodePath("ScrollContainer/Column/SourceRow/UseOriginal")
+metal_color_picker = NodePath("ScrollContainer/Column/SampleRow/Left/Color")
+pick_color_button = NodePath("ScrollContainer/Column/SampleRow/Left/PickColor")
+weight_faders = [NodePath("ScrollContainer/Column/SampleRow/Faders/Hue"), NodePath("ScrollContainer/Column/SampleRow/Faders/Sat"), NodePath("ScrollContainer/Column/SampleRow/Faders/Lum"), NodePath("ScrollContainer/Column/SampleRow/Faders/Low"), NodePath("ScrollContainer/Column/SampleRow/Faders/High")]
+blur_size_slider = NodePath("ScrollContainer/Column/BlurSizeGroup/BlurSize")
+blur_size_label = NodePath("ScrollContainer/Column/BlurSizeGroup/BlurSizeVal")
+overlay_blur_slider = NodePath("ScrollContainer/Column/OverlayBlurGroup/OverlayBlur")
+overlay_blur_label = NodePath("ScrollContainer/Column/OverlayBlurGroup/OverlayBlurVal")
+high_pass_slider = NodePath("ScrollContainer/Column/HighPassGroup/HighPass")
+high_pass_label = NodePath("ScrollContainer/Column/HighPassGroup/HighPassVal")
+final_contrast_slider = NodePath("ScrollContainer/Column/FinalGroup/Contrast")
+final_contrast_label = NodePath("ScrollContainer/Column/FinalGroup/ContrastVal")
+final_bias_slider = NodePath("ScrollContainer/Column/FinalGroup/Bias")
+final_bias_label = NodePath("ScrollContainer/Column/FinalGroup/BiasVal")
+set_button = NodePath("ScrollContainer/Column/SetButton")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Metallic From Diffuse"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(500, 500)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Column" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+
+[node name="SourceRow" type="HBoxContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+
+[node name="UseEdited" type="CheckBox" parent="ScrollContainer/Column/SourceRow"]
+layout_mode = 2
+text = " Use Edited Diffuse"
+
+[node name="UseOriginal" type="CheckBox" parent="ScrollContainer/Column/SourceRow"]
+layout_mode = 2
+button_pressed = true
+text = " Use Original Diffuse"
+
+[node name="RevealGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="RevealTitle" type="Label" parent="ScrollContainer/Column/RevealGroup"]
+layout_mode = 2
+text = "Metalic Reveal Slider"
+vertical_alignment = 1
+
+[node name="Reveal" type="HSlider" parent="ScrollContainer/Column/RevealGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="RevealVal" type="Label" parent="ScrollContainer/Column/RevealGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="SampleRow" type="HBoxContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+
+[node name="Left" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow"]
+layout_mode = 2
+
+[node name="PickColor" type="Button" parent="ScrollContainer/Column/SampleRow/Left"]
+layout_mode = 2
+text = "Pick Color"
+
+[node name="Color" type="ColorPicker" parent="ScrollContainer/Column/SampleRow/Left"]
+custom_minimum_size = Vector2(48, 24)
+layout_mode = 2
+edit_alpha = false
+can_add_swatches = false
+sliders_visible = false
+presets_visible = false
+
+[node name="Faders" type="HBoxContainer" parent="ScrollContainer/Column/SampleRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Hue" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Hue"]
+layout_mode = 2
+text = "Hue"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/SampleRow/Faders/Hue"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Hue"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="Sat" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Sat"]
+layout_mode = 2
+text = "Sat"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/SampleRow/Faders/Sat"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Sat"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="Lum" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Lum"]
+layout_mode = 2
+text = "Lum"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/SampleRow/Faders/Lum"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.2
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Lum"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.20"
+horizontal_alignment = 1
+
+[node name="Low" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Low"]
+layout_mode = 2
+text = "Low"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/SampleRow/Faders/Low"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.0
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/Low"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 1
+
+[node name="High" type="VBoxContainer" parent="ScrollContainer/Column/SampleRow/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/High"]
+layout_mode = 2
+text = "High"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/SampleRow/Faders/High"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/SampleRow/Faders/High"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="BlurSizeGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="BlurSizeTitle" type="Label" parent="ScrollContainer/Column/BlurSizeGroup"]
+layout_mode = 2
+text = "Blur Size"
+vertical_alignment = 1
+
+[node name="BlurSize" type="HSlider" parent="ScrollContainer/Column/BlurSizeGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 0.0
+
+[node name="BlurSizeVal" type="Label" parent="ScrollContainer/Column/BlurSizeGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="OverlayBlurGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="OverlayBlurTitle" type="Label" parent="ScrollContainer/Column/OverlayBlurGroup"]
+layout_mode = 2
+text = "Overlay Blur Size"
+vertical_alignment = 1
+
+[node name="OverlayBlur" type="HSlider" parent="ScrollContainer/Column/OverlayBlurGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 10.0
+max_value = 100.0
+step = 1.0
+value = 30.0
+
+[node name="OverlayBlurVal" type="Label" parent="ScrollContainer/Column/OverlayBlurGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "30.00"
+horizontal_alignment = 2
+
+[node name="HighPassGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="HighPassTitle" type="Label" parent="ScrollContainer/Column/HighPassGroup"]
+layout_mode = 2
+text = "High Pass Overlay"
+vertical_alignment = 1
+
+[node name="HighPass" type="HSlider" parent="ScrollContainer/Column/HighPassGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+value = 1.0
+
+[node name="HighPassVal" type="Label" parent="ScrollContainer/Column/HighPassGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="FinalGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="FinalContrastTitle" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+layout_mode = 2
+text = "Final Contrast"
+vertical_alignment = 1
+
+[node name="Contrast" type="HSlider" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.01
+value = 1.0
+
+[node name="ContrastVal" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="FinalBiasTitle" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+layout_mode = 2
+text = "Final Bias"
+vertical_alignment = 1
+
+[node name="Bias" type="HSlider" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -0.5
+max_value = 0.5
+step = 0.01
+value = 0.0
+
+[node name="BiasVal" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="SetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+text = "Set as Metallic"
