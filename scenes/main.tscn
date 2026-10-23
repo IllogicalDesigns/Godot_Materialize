@@ -4,6 +4,13 @@
 [ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_sugp2"]
 [ext_resource type="Script" uid="uid://cttdhk31c1ie8" path="res://scripts/main.gd" id="3_main"]
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_616h8"]
+albedo_color = Color(0.5, 0.5, 0.5, 1)
+roughness = 0.6
+normal_enabled = true
+heightmap_enabled = true
+heightmap_scale = 0.5
+
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0wfyh"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
 ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -15,14 +22,6 @@ sky_material = SubResource("ProceduralSkyMaterial_0wfyh")
 background_mode = 2
 sky = SubResource("Sky_sugp2")
 glow_enabled = true
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_616h8"]
-texture_filter = 3
-albedo_color = Color(0.5, 0.5, 0.5, 1)
-roughness = 0.6
-normal_enabled = true
-heightmap_enabled = true
-heightmap_scale = 0.5
 
 [sub_resource type="BoxMesh" id="BoxMesh_616h8"]
 material = SubResource("StandardMaterial3D_616h8")
@@ -60,7 +59,7 @@ _hide_gui_button = NodePath("UI/UpperRightButtons/HideGui")
 environment = SubResource("Environment_jyhfs")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1170076995]
-transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+transform = Transform3D(0.025299385, -0.84605336, -0.5324975, 0.4523058, -0.46534008, 0.76084036, -0.8915039, -0.26010054, 0.37090194, 0, 0, 0)
 shadow_enabled = true
 
 [node name="UI" type="MarginContainer" parent="." unique_id=733213221]
@@ -191,7 +190,7 @@ size_flags_vertical = 8
 layout_mode = 2
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=700108628]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.60468626, 0, 1.7549264)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.53061676, 0.29229593, 1.7549264)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=727868728]
 transform = Transform3D(0.65848535, -0.253429, -0.70864046, -0.36455423, 0.7163454, -0.5949368, 0.6584055, 0.650095, 0.37931424, 0, 0, 0)
