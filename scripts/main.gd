@@ -16,6 +16,14 @@ extends Node3D
 ## `MapOptionsPanel`, its map feeds the `MeshInstance3D` preview, and the mesh
 ## updates live as the sliders move.
 ##
+## "Show full Material" puts the default Godot material (`StandardMaterial3D`,
+## the mesh's own material in `scenes/main.tscn`) on the mesh, filled straight
+## from the map store: the Diffuse map in the Albedo slot, the Normal map in the
+## Normal map slot, the Height map in the Heightmap slot, roughness as the
+## shading control. The normal and heightmap features are turned on in the
+## scene, so the built-in shader does the lighting and the shell only fills
+## slots.
+##
 ## The window is Materialize's layout (`MainGui.cs` lines 485-1288): the map box
 ## row, the saving options box, the 3D preview filling the rest of the window,
 ## and the view-button row under the boxes. Buttons that depend on unported
@@ -56,6 +64,11 @@ const MAP_BOXES: Array[Dictionary] = [
 ## The 3D preview mesh, the panel slot that the active module's panel goes
 ## into, the status label, the working resolution picker, and the dialogs.
 @export var _mesh: MeshInstance3D
+## The full material "Show full Material" puts on the mesh: the default Godot
+## shader, `StandardMaterial3D`, assigned in `scenes/main.tscn` as the mesh's
+## own material sub-resource. Albedo, Normal map and Heightmap slots are filled
+## from the map store by `_fill_full_material()`.
+@export var _full_material: StandardMaterial3D
 @export var _panel_slot: VBoxContainer
 @export var _status: Label
 @export var _resolution: OptionButton
@@ -115,6 +128,10 @@ var _load_type: String = ""
 ## The 3D preview material (`shaders/mesh_preview.gdshader`): `map` is the
 ## previewed map, `reveal` is the Height Reveal Slider.
 const MESH_SHADER_PATH := "res://shaders/mesh_preview.gdshader"
+
+## The mesh map key "Show full Material" installs. It is not a map in the map
+## store, so `_set_mesh_map` puts the full material on the mesh for this key.
+const FULL_MESH_MAP := "full"
 
 var _mesh_material: ShaderMaterial
 ## Flat grey texture used when a map is cleared, so the mesh does not go black.
@@ -301,6 +318,12 @@ func _on_map_changed(map_type: String, image: Image) -> void:
 		(_boxes[map_type] as MapBox).set_image(display)
 	if map_type == _mesh_map:
 		_set_mesh_texture(display)
+	if _mesh_map == FULL_MESH_MAP:
+		# The full material shows every map at once, so any map change re-fills
+		# its slot: a new height, normal, or diffuse map lands on the mesh
+		# immediately, which is what Materialize's SetMaterialValues does for
+		# the test object (`MainGui.cs` lines 283-335).
+		_fill_full_material()
 	_refresh_box_buttons()
 
 func _set_mesh_texture(image: Image) -> void:
@@ -321,6 +344,15 @@ func _flat_texture(value: float) -> ImageTexture:
 ## test object, so the box's Preview button is what selects it.
 func _set_mesh_map(map_type: String) -> void:
 	_mesh_map = map_type
+	if map_type == FULL_MESH_MAP:
+		# "Show full Material": the built-in Godot material, filled from the
+		# map store, goes on the mesh. The full material is the mesh's own
+		# material in `scenes/main.tscn`, with the normal and heightmap
+		# features switched on there, so the shell only fills slots.
+		_mesh.material_override = _full_material
+		_fill_full_material()
+		return
+	_mesh.material_override = _mesh_material
 	# A normal map is tangent-space data, so the mesh shades it instead of
 	# using it as albedo (`shaders/mesh_preview.gdshader` `is_normal`).
 	_mesh_material.set_shader_parameter("is_normal", 1.0 if map_type == "normal" else 0.0)
@@ -330,6 +362,29 @@ func _set_mesh_map(map_type: String) -> void:
 		_set_mesh_texture(null)
 	else:
 		_set_mesh_texture(module.preview(image) if module != null else image)
+
+## "Show full Material" fills the built-in Godot material from the map store:
+## the Diffuse map in the Albedo slot, the Normal map in the Normal map slot,
+## the Height map in the Heightmap slot. Every slot is a plain 8-bit texture
+## copy, so filling is a uniform write with no pass chain. Godot reads the
+## heightmap from the red channel, which is where the height pass writes its
+## height, and the normal map is stored signed (0.5 neutral), which is the
+## tangent-space convention Godot samples. An empty map leaves its slot empty:
+## StandardMaterial3D samples its built-in default for an empty slot, and the
+## Albedo slot keeps the flat grey stand-in, the way Materialize writes
+## `_TextureGrey` into `_DiffuseMap` (`MainGui.cs` lines 293-299).
+func _fill_full_material() -> void:
+	_full_material.albedo_texture = _display_texture(maps.get("diffuse"), _neutral)
+	_full_material.normal_texture = _display_texture(maps.get("normal"))
+	_full_material.heightmap_texture = _display_texture(maps.get("height"))
+
+## A map as an 8-bit texture for a material slot. `neutral` is the stand-in for
+## a slot that needs one (Albedo); empty slots get null and sample the
+## material's default.
+func _display_texture(image: Image, neutral: ImageTexture = null) -> ImageTexture:
+	if image == null:
+		return neutral
+	return ImageTexture.create_from_image(Blit.to_display(image))
 
 ## Sliders write into the module's settings Dictionary; debounce so dragging a
 ## fader does not fire a pass chain every 0.01.
@@ -604,7 +659,13 @@ func _on_save_all_dir_selected(path: String) -> void:
 	_set_status("Saved %d maps into %s" % [written, path])
 
 func _on_show_full_material_pressed() -> void:
-	_set_status("Full material preview is not ported yet (DNMST.shader).")
+	# Materialize's ShowFullMaterial closes the tool windows and puts the full
+	# PBR material on the test object (`MainGui.cs` lines 419-424,
+	# `MaterialGui.cs` `Initialize`). The port fills the built-in Godot material
+	# from the map store and puts it on the mesh; the panels stay open, which is
+	# the port's deviation.
+	_set_mesh_map(FULL_MESH_MAP)
+	_set_status("Showing full material on the mesh: Diffuse in Albedo, Normal map, Heightmap, roughness.")
 
 func _on_next_cube_map_pressed() -> void:
 	_set_status("Cube maps are not ported yet (Assets/CubeMaps).")
@@ -658,7 +719,7 @@ func _on_fullscreen_pressed() -> void:
 ## Reports exports that were never assigned in the Inspector, so a missing
 ## widget shows up as an error at load instead of a null crash mid-run.
 func _check_exports() -> void:
-	for name: String in ["boxes", "_mesh", "_panel_slot", "_status", "_resolution",
+	for name: String in ["boxes", "_mesh", "_full_material", "_panel_slot", "_status", "_resolution",
 			"_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce",
 			"_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button",
 			"_generate_button", "_save_map_button", "_save_all_button", "_save_format",

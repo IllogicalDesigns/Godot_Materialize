@@ -1,9 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://p6l6vseg3tmq"]
 
 [ext_resource type="PackedScene" path="res://scenes/map_panel.tscn" id="1_0wfyh"]
-[ext_resource type="PackedScene" path="res://scenes/save_panel.tscn" id="2_sugp2"]
-[ext_resource type="Script" path="res://ui/map_box.gd" id="3_jyhfs"]
-[ext_resource type="Script" path="res://scripts/main.gd" id="3_main"]
+[ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_sugp2"]
+[ext_resource type="Script" uid="uid://cttdhk31c1ie8" path="res://scripts/main.gd" id="3_main"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0wfyh"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -17,12 +16,22 @@ background_mode = 2
 sky = SubResource("Sky_sugp2")
 glow_enabled = true
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_616h8"]
+texture_filter = 3
+albedo_color = Color(0.5, 0.5, 0.5, 1)
+roughness = 0.6
+normal_enabled = true
+heightmap_enabled = true
+heightmap_scale = 0.5
+
 [sub_resource type="BoxMesh" id="BoxMesh_616h8"]
+material = SubResource("StandardMaterial3D_616h8")
 
 [node name="MainNew" type="Node3D" unique_id=2127802715 node_paths=PackedStringArray("boxes", "_mesh", "_panel_slot", "_status", "_resolution", "_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce", "_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button", "_generate_button", "_save_map_button", "_save_all_button", "_save_format", "_show_full_material_button", "_next_cube_map_button", "_tile_maps_button", "_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button", "_make_suggestion_button", "_hide_gui_button")]
 script = ExtResource("3_main")
 boxes = [NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel2"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel3"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel4"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel5"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel6"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel7")]
 _mesh = NodePath("MeshInstance3D")
+_full_material = SubResource("StandardMaterial3D_616h8")
 _panel_slot = NodePath("UI/MapOptionsPanel/PanelSlot")
 _status = NodePath("UI/MapsAnd3DFunctions/Toolbar/Status")
 _resolution = NodePath("UI/MapsAnd3DFunctions/Toolbar/Resolution")
@@ -72,112 +81,28 @@ size_flags_horizontal = 0
 [node name="Maps" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=910327083]
 layout_mode = 2
 
-[node name="MapPanel" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=720125377 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=720125377 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel2" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=2041840648 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel2" parent="UI/MapsAnd3DFunctions/Maps" unique_id=2041840648 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel3" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=603737742 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel3" parent="UI/MapsAnd3DFunctions/Maps" unique_id=603737742 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel4" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1761205318 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel4" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1761205318 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel5" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel5" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel6" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel6" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="MapPanel7" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button") instance=ExtResource("1_0wfyh")]
-custom_minimum_size = Vector2(110, 250)
+[node name="MapPanel7" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
-script = ExtResource("3_jyhfs")
-title_label = NodePath("Box/Title")
-create_button = NodePath("Box/Createrow/Create")
-preview = NodePath("Box/Preview")
-paste_button = NodePath("Box/IOSrow/Paste")
-copy_button = NodePath("Box/IOSrow/Copy")
-open_button = NodePath("Box/IOSrow/Open")
-save_button = NodePath("Box/IOSrow/Save")
-quick_save_button = NodePath("Box/Quickrow/QuickSave")
-preview_button = NodePath("Box/Quickrow/Preview")
-clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="SavePanel" type="PanelContainer" parent="UI/MapsAnd3DFunctions/Maps" unique_id=323743495 instance=ExtResource("2_sugp2")]
+[node name="SavePanel" parent="UI/MapsAnd3DFunctions/Maps" unique_id=323743495 instance=ExtResource("2_sugp2")]
 layout_mode = 2
 
 [node name="Toolbar" type="HBoxContainer" parent="UI/MapsAnd3DFunctions" unique_id=1800000001]
