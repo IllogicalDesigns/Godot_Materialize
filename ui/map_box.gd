@@ -9,6 +9,10 @@ class_name MapBox
 ## ...), and the main scene decides what each button does. The preview forwards
 ## clicks as `preview_clicked` with the UV inside the drawn image, so colour
 ## picking works on any preview in the app.
+##
+## Every widget the box wires is an `@export` assigned in the Inspector (see
+## `scenes/map_panel.tscn`), so this script holds no node paths
+## (`CODING_RULES.md`).
 
 signal button_pressed(action: String, map_type: String)
 signal preview_clicked(map_type: String, uv: Vector2)
@@ -17,37 +21,48 @@ signal preview_clicked(map_type: String, uv: Vector2)
 @export var title: String = "Map"
 @export var create_label: String = "Create"
 
-## action -> node path, matching Materialize's button rows.
-const BUTTONS := {
-	"paste": "Box/IOSrow/Paste",
-	"copy": "Box/IOSrow/Copy",
-	"open": "Box/IOSrow/Open",
-	"save": "Box/IOSrow/Save",
-	"quick_save": "Box/Quickrow/QuickSave",
-	"preview": "Box/Quickrow/Preview",
-	"create": "Box/Createrow/Create",
-	"clear": "Box/Createrow/Clear",
-}
+## The title, the Create button, and the preview, assigned in the Inspector.
+@export var title_label: Label
+@export var create_button: Button
+@export var preview: TextureRect
 
-var _preview: TextureRect
+## The button rows: Paste / Copy / Open / Save, Quick Save, Preview, Create,
+## Clear, the same set Materialize draws for every map.
+@export var paste_button: Button
+@export var copy_button: Button
+@export var open_button: Button
+@export var save_button: Button
+@export var quick_save_button: Button
+@export var preview_button: Button
+@export var clear_button: Button
+
+## action -> button, built from the exports in `_ready`.
 var _buttons: Dictionary = {}
 
 func _ready() -> void:
-	$Box/Title.text = title
-	$Box/Createrow/Create.text = create_label
-	_preview = $Box/Preview
-	_preview.gui_input.connect(_on_preview_gui_input)
-	for action: String in BUTTONS:
-		var button: Button = get_node(BUTTONS[action])
-		_buttons[action] = button
-		button.pressed.connect(_on_button.bind(action))
+	_check_exports()
+	title_label.text = title
+	create_button.text = create_label
+	preview.gui_input.connect(_on_preview_gui_input)
+	_buttons = {
+		"paste": paste_button,
+		"copy": copy_button,
+		"open": open_button,
+		"save": save_button,
+		"quick_save": quick_save_button,
+		"preview": preview_button,
+		"create": create_button,
+		"clear": clear_button,
+	}
+	for action: String in _buttons:
+		(_buttons[action] as Button).pressed.connect(_on_button.bind(action))
 
 ## Shows an image in the box. Accepts any format; null clears the preview.
 func set_image(image: Image) -> void:
 	if image == null:
-		_preview.texture = null
+		preview.texture = null
 		return
-	_preview.texture = ImageTexture.create_from_image(Blit.to_display(image))
+	preview.texture = ImageTexture.create_from_image(Blit.to_display(image))
 
 ## Re-applies the title and create label after _ready, so the shell can name a
 ## box once it knows which map it holds. The instance exports are read in
@@ -55,8 +70,8 @@ func set_image(image: Image) -> void:
 func set_labels(new_title: String, new_create_label: String) -> void:
 	title = new_title
 	create_label = new_create_label
-	$Box/Title.text = title
-	$Box/Createrow/Create.text = create_label
+	title_label.text = title
+	create_button.text = create_label
 
 ## Materialize greys buttons out with GUI.enabled; this is the same thing.
 func set_button_enabled(action: String, enabled: bool) -> void:
@@ -68,9 +83,9 @@ func _on_button(action: String) -> void:
 func _on_preview_gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if _preview.texture == null:
+	if preview.texture == null:
 		return
-	var uv := click_uv(event.position, _preview.size, _preview.texture.get_size())
+	var uv := click_uv(event.position, preview.size, preview.texture.get_size())
 	if uv.x < 0.0:
 		return
 	preview_clicked.emit(map_type, uv)
@@ -87,3 +102,12 @@ static func click_uv(position: Vector2, rect: Vector2, texture_size: Vector2i) -
 	if local.x < 0.0 or local.y < 0.0 or local.x > drawn.x or local.y > drawn.y:
 		return Vector2(-1.0, -1.0)
 	return local / drawn
+
+## Reports exports that were never assigned in the Inspector, so a missing
+## widget shows up as an error at load instead of a null crash mid-run.
+func _check_exports() -> void:
+	for name: String in ["title_label", "create_button", "preview", "paste_button",
+			"copy_button", "open_button", "save_button", "quick_save_button",
+			"preview_button", "clear_button"]:
+		if get(name) == null:
+			push_error("MapBox export %s is not assigned in scenes/map_panel.tscn" % name)

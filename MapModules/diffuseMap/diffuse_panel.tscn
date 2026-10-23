@@ -1,24 +1,58 @@
-[gd_scene format=3 uid="uid://bcq7q7h3n8v2j"]
+[gd_scene format=3 uid="uid://cp633prxj2bfp"]
 
 [ext_resource type="Script" uid="uid://d3pnlgd8x2v4k" path="res://MapModules/diffuseMap/diffuse_panel.gd" id="1"]
 
-[node name="DiffusePanel" type="VBoxContainer" unique_id=1760300878]
+[node name="DiffusePanel" type="VBoxContainer" unique_id=1760300878 node_paths=PackedStringArray("reveal_slider", "reveal_label", "avg_blur_slider", "avg_blur_label", "overlay_blur_slider", "overlay_blur_label", "overlay_contrast_slider", "overlay_contrast_label", "light_power_slider", "light_power_label", "remove_light_slider", "remove_light_label", "shadow_power_slider", "shadow_power_label", "remove_shadow_slider", "remove_shadow_label", "hot_spot_slider", "hot_spot_label", "dark_spot_slider", "dark_spot_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "keep_color_slider", "keep_color_label", "saturation_slider", "saturation_label", "apply_button")]
 script = ExtResource("1")
+reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
+reveal_label = NodePath("ScrollContainer/Column/RevealGroup/RevealVal")
+avg_blur_slider = NodePath("ScrollContainer/Column/AvgBlurGroup/AvgBlur")
+avg_blur_label = NodePath("ScrollContainer/Column/AvgBlurGroup/AvgBlurVal")
+overlay_blur_slider = NodePath("ScrollContainer/Column/OverlayBlurGroup/OverlayBlur")
+overlay_blur_label = NodePath("ScrollContainer/Column/OverlayBlurGroup/OverlayBlurVal")
+overlay_contrast_slider = NodePath("ScrollContainer/Column/OverlayContrastGroup/OverlayContrast")
+overlay_contrast_label = NodePath("ScrollContainer/Column/OverlayContrastGroup/OverlayContrastVal")
+light_power_slider = NodePath("ScrollContainer/Column/LightPowerGroup/LightPower")
+light_power_label = NodePath("ScrollContainer/Column/LightPowerGroup/LightPowerVal")
+remove_light_slider = NodePath("ScrollContainer/Column/RemoveLightGroup/RemoveLight")
+remove_light_label = NodePath("ScrollContainer/Column/RemoveLightGroup/RemoveLightVal")
+shadow_power_slider = NodePath("ScrollContainer/Column/ShadowPowerGroup/ShadowPower")
+shadow_power_label = NodePath("ScrollContainer/Column/ShadowPowerGroup/ShadowPowerVal")
+remove_shadow_slider = NodePath("ScrollContainer/Column/RemoveShadowGroup/RemoveShadow")
+remove_shadow_label = NodePath("ScrollContainer/Column/RemoveShadowGroup/RemoveShadowVal")
+hot_spot_slider = NodePath("ScrollContainer/Column/HotSpotGroup/HotSpot")
+hot_spot_label = NodePath("ScrollContainer/Column/HotSpotGroup/HotSpotVal")
+dark_spot_slider = NodePath("ScrollContainer/Column/DarkSpotGroup/DarkSpot")
+dark_spot_label = NodePath("ScrollContainer/Column/DarkSpotGroup/DarkSpotVal")
+contrast_slider = NodePath("ScrollContainer/Column/ContrastGroup/Contrast")
+contrast_label = NodePath("ScrollContainer/Column/ContrastGroup/ContrastVal")
+bias_slider = NodePath("ScrollContainer/Column/BiasGroup/Bias")
+bias_label = NodePath("ScrollContainer/Column/BiasGroup/BiasVal")
+keep_color_slider = NodePath("ScrollContainer/Column/KeepColorGroup/KeepColor")
+keep_color_label = NodePath("ScrollContainer/Column/KeepColorGroup/KeepColorVal")
+saturation_slider = NodePath("ScrollContainer/Column/SaturationGroup/Saturation")
+saturation_label = NodePath("ScrollContainer/Column/SaturationGroup/SaturationVal")
+apply_button = NodePath("ScrollContainer/Column/ApplyButton")
 
-[node name="Column" type="VBoxContainer" parent="." unique_id=1938869506]
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1336201865]
+custom_minimum_size = Vector2(500, 500)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Column" type="VBoxContainer" parent="ScrollContainer" unique_id=1938869506]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="RevealGroup" type="VBoxContainer" parent="Column" unique_id=1063897671]
+[node name="RevealGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=1063897671]
 layout_mode = 2
 
-[node name="RevealTitle" type="Label" parent="Column/RevealGroup" unique_id=296489851]
+[node name="RevealTitle" type="Label" parent="ScrollContainer/Column/RevealGroup" unique_id=296489851]
 layout_mode = 2
 text = "Diffuse Reveal Slider"
 vertical_alignment = 1
 
-[node name="Reveal" type="HSlider" parent="Column/RevealGroup" unique_id=419121485]
+[node name="Reveal" type="HSlider" parent="ScrollContainer/Column/RevealGroup" unique_id=419121485]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -26,63 +60,63 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
-[node name="RevealVal" type="Label" parent="Column/RevealGroup" unique_id=1237639441]
+[node name="RevealVal" type="Label" parent="ScrollContainer/Column/RevealGroup" unique_id=1237639441]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.50"
 horizontal_alignment = 2
 
-[node name="AvgBlurGroup" type="VBoxContainer" parent="Column" unique_id=1627842237]
+[node name="AvgBlurGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=1627842237]
 layout_mode = 2
 
-[node name="AvgBlurTitle" type="Label" parent="Column/AvgBlurGroup" unique_id=586245954]
+[node name="AvgBlurTitle" type="Label" parent="ScrollContainer/Column/AvgBlurGroup" unique_id=586245954]
 layout_mode = 2
 text = "Average Color Blur Size"
 vertical_alignment = 1
 
-[node name="AvgBlur" type="HSlider" parent="Column/AvgBlurGroup" unique_id=292383156]
+[node name="AvgBlur" type="HSlider" parent="ScrollContainer/Column/AvgBlurGroup" unique_id=292383156]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 5.0
 value = 50.0
 
-[node name="AvgBlurVal" type="Label" parent="Column/AvgBlurGroup" unique_id=1285832439]
+[node name="AvgBlurVal" type="Label" parent="ScrollContainer/Column/AvgBlurGroup" unique_id=1285832439]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "50"
 horizontal_alignment = 2
 
-[node name="OverlayBlurGroup" type="VBoxContainer" parent="Column" unique_id=1786967921]
+[node name="OverlayBlurGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=1786967921]
 layout_mode = 2
 
-[node name="OverlayBlurTitle" type="Label" parent="Column/OverlayBlurGroup" unique_id=2107805356]
+[node name="OverlayBlurTitle" type="Label" parent="ScrollContainer/Column/OverlayBlurGroup" unique_id=2107805356]
 layout_mode = 2
 text = "Overlay Blur Size"
 vertical_alignment = 1
 
-[node name="OverlayBlur" type="HSlider" parent="Column/OverlayBlurGroup" unique_id=2029499143]
+[node name="OverlayBlur" type="HSlider" parent="ScrollContainer/Column/OverlayBlurGroup" unique_id=2029499143]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 5.0
 value = 20.0
 
-[node name="OverlayBlurVal" type="Label" parent="Column/OverlayBlurGroup" unique_id=1891707682]
+[node name="OverlayBlurVal" type="Label" parent="ScrollContainer/Column/OverlayBlurGroup" unique_id=1891707682]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "20"
 horizontal_alignment = 2
 
-[node name="OverlayContrastGroup" type="VBoxContainer" parent="Column" unique_id=215680148]
+[node name="OverlayContrastGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=215680148]
 layout_mode = 2
 
-[node name="OverlayContrastTitle" type="Label" parent="Column/OverlayContrastGroup" unique_id=171869886]
+[node name="OverlayContrastTitle" type="Label" parent="ScrollContainer/Column/OverlayContrastGroup" unique_id=171869886]
 layout_mode = 2
 text = "Overlay Blur Contrast"
 vertical_alignment = 1
 
-[node name="OverlayContrast" type="HSlider" parent="Column/OverlayContrastGroup" unique_id=994082772]
+[node name="OverlayContrast" type="HSlider" parent="ScrollContainer/Column/OverlayContrastGroup" unique_id=994082772]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -90,21 +124,21 @@ min_value = -1.0
 max_value = 1.0
 step = 0.01
 
-[node name="OverlayContrastVal" type="Label" parent="Column/OverlayContrastGroup" unique_id=1394744571]
+[node name="OverlayContrastVal" type="Label" parent="ScrollContainer/Column/OverlayContrastGroup" unique_id=1394744571]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="LightPowerGroup" type="VBoxContainer" parent="Column" unique_id=1285589845]
+[node name="LightPowerGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=1285589845]
 layout_mode = 2
 
-[node name="LightPowerTitle" type="Label" parent="Column/LightPowerGroup" unique_id=1919382310]
+[node name="LightPowerTitle" type="Label" parent="ScrollContainer/Column/LightPowerGroup" unique_id=1919382310]
 layout_mode = 2
 text = "Light Mask Power"
 vertical_alignment = 1
 
-[node name="LightPower" type="HSlider" parent="Column/LightPowerGroup" unique_id=83416189]
+[node name="LightPower" type="HSlider" parent="ScrollContainer/Column/LightPowerGroup" unique_id=83416189]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -112,42 +146,42 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
-[node name="LightPowerVal" type="Label" parent="Column/LightPowerGroup" unique_id=1388198091]
+[node name="LightPowerVal" type="Label" parent="ScrollContainer/Column/LightPowerGroup" unique_id=1388198091]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.50"
 horizontal_alignment = 2
 
-[node name="RemoveLightGroup" type="VBoxContainer" parent="Column" unique_id=590224263]
+[node name="RemoveLightGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=590224263]
 layout_mode = 2
 
-[node name="RemoveLightTitle" type="Label" parent="Column/RemoveLightGroup" unique_id=401204937]
+[node name="RemoveLightTitle" type="Label" parent="ScrollContainer/Column/RemoveLightGroup" unique_id=401204937]
 layout_mode = 2
 text = "Remove Light"
 vertical_alignment = 1
 
-[node name="RemoveLight" type="HSlider" parent="Column/RemoveLightGroup" unique_id=141109824]
+[node name="RemoveLight" type="HSlider" parent="ScrollContainer/Column/RemoveLightGroup" unique_id=141109824]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="RemoveLightVal" type="Label" parent="Column/RemoveLightGroup" unique_id=1839179792]
+[node name="RemoveLightVal" type="Label" parent="ScrollContainer/Column/RemoveLightGroup" unique_id=1839179792]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="ShadowPowerGroup" type="VBoxContainer" parent="Column" unique_id=571341234]
+[node name="ShadowPowerGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=571341234]
 layout_mode = 2
 
-[node name="ShadowPowerTitle" type="Label" parent="Column/ShadowPowerGroup" unique_id=1254937081]
+[node name="ShadowPowerTitle" type="Label" parent="ScrollContainer/Column/ShadowPowerGroup" unique_id=1254937081]
 layout_mode = 2
 text = "Shadow Mask Power"
 vertical_alignment = 1
 
-[node name="ShadowPower" type="HSlider" parent="Column/ShadowPowerGroup" unique_id=1566450481]
+[node name="ShadowPower" type="HSlider" parent="ScrollContainer/Column/ShadowPowerGroup" unique_id=1566450481]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -155,84 +189,84 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
-[node name="ShadowPowerVal" type="Label" parent="Column/ShadowPowerGroup" unique_id=1139623772]
+[node name="ShadowPowerVal" type="Label" parent="ScrollContainer/Column/ShadowPowerGroup" unique_id=1139623772]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.50"
 horizontal_alignment = 2
 
-[node name="RemoveShadowGroup" type="VBoxContainer" parent="Column" unique_id=305328516]
+[node name="RemoveShadowGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=305328516]
 layout_mode = 2
 
-[node name="RemoveShadowTitle" type="Label" parent="Column/RemoveShadowGroup" unique_id=843458078]
+[node name="RemoveShadowTitle" type="Label" parent="ScrollContainer/Column/RemoveShadowGroup" unique_id=843458078]
 layout_mode = 2
 text = "Remove Shadow"
 vertical_alignment = 1
 
-[node name="RemoveShadow" type="HSlider" parent="Column/RemoveShadowGroup" unique_id=945872671]
+[node name="RemoveShadow" type="HSlider" parent="ScrollContainer/Column/RemoveShadowGroup" unique_id=945872671]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="RemoveShadowVal" type="Label" parent="Column/RemoveShadowGroup" unique_id=526301104]
+[node name="RemoveShadowVal" type="Label" parent="ScrollContainer/Column/RemoveShadowGroup" unique_id=526301104]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="HotSpotGroup" type="VBoxContainer" parent="Column" unique_id=732882636]
+[node name="HotSpotGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=732882636]
 layout_mode = 2
 
-[node name="HotSpotTitle" type="Label" parent="Column/HotSpotGroup" unique_id=1932568287]
+[node name="HotSpotTitle" type="Label" parent="ScrollContainer/Column/HotSpotGroup" unique_id=1932568287]
 layout_mode = 2
 text = "Hot Spot Removal"
 vertical_alignment = 1
 
-[node name="HotSpot" type="HSlider" parent="Column/HotSpotGroup" unique_id=2007107457]
+[node name="HotSpot" type="HSlider" parent="ScrollContainer/Column/HotSpotGroup" unique_id=2007107457]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="HotSpotVal" type="Label" parent="Column/HotSpotGroup" unique_id=1981978468]
+[node name="HotSpotVal" type="Label" parent="ScrollContainer/Column/HotSpotGroup" unique_id=1981978468]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="DarkSpotGroup" type="VBoxContainer" parent="Column" unique_id=2142063053]
+[node name="DarkSpotGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=2142063053]
 layout_mode = 2
 
-[node name="DarkSpotTitle" type="Label" parent="Column/DarkSpotGroup" unique_id=606481139]
+[node name="DarkSpotTitle" type="Label" parent="ScrollContainer/Column/DarkSpotGroup" unique_id=606481139]
 layout_mode = 2
 text = "Dark Spot Removal"
 vertical_alignment = 1
 
-[node name="DarkSpot" type="HSlider" parent="Column/DarkSpotGroup" unique_id=118894495]
+[node name="DarkSpot" type="HSlider" parent="ScrollContainer/Column/DarkSpotGroup" unique_id=118894495]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 
-[node name="DarkSpotVal" type="Label" parent="Column/DarkSpotGroup" unique_id=1064177949]
+[node name="DarkSpotVal" type="Label" parent="ScrollContainer/Column/DarkSpotGroup" unique_id=1064177949]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="ContrastGroup" type="VBoxContainer" parent="Column" unique_id=162446111]
+[node name="ContrastGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=162446111]
 layout_mode = 2
 
-[node name="ContrastTitle" type="Label" parent="Column/ContrastGroup" unique_id=1294334346]
+[node name="ContrastTitle" type="Label" parent="ScrollContainer/Column/ContrastGroup" unique_id=1294334346]
 layout_mode = 2
 text = "Final Contrast"
 vertical_alignment = 1
 
-[node name="Contrast" type="HSlider" parent="Column/ContrastGroup" unique_id=662548079]
+[node name="Contrast" type="HSlider" parent="ScrollContainer/Column/ContrastGroup" unique_id=662548079]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -241,21 +275,21 @@ max_value = 2.0
 step = 0.01
 value = 1.0
 
-[node name="ContrastVal" type="Label" parent="Column/ContrastGroup" unique_id=195439632]
+[node name="ContrastVal" type="Label" parent="ScrollContainer/Column/ContrastGroup" unique_id=195439632]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "1.00"
 horizontal_alignment = 2
 
-[node name="BiasGroup" type="VBoxContainer" parent="Column" unique_id=44823352]
+[node name="BiasGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=44823352]
 layout_mode = 2
 
-[node name="BiasTitle" type="Label" parent="Column/BiasGroup" unique_id=59639570]
+[node name="BiasTitle" type="Label" parent="ScrollContainer/Column/BiasGroup" unique_id=59639570]
 layout_mode = 2
 text = "Final Bias"
 vertical_alignment = 1
 
-[node name="Bias" type="HSlider" parent="Column/BiasGroup" unique_id=805276589]
+[node name="Bias" type="HSlider" parent="ScrollContainer/Column/BiasGroup" unique_id=805276589]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -264,21 +298,21 @@ max_value = 0.5
 step = 0.01
 value = 0.5
 
-[node name="BiasVal" type="Label" parent="Column/BiasGroup" unique_id=1287501700]
+[node name="BiasVal" type="Label" parent="ScrollContainer/Column/BiasGroup" unique_id=1287501700]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
 
-[node name="KeepColorGroup" type="VBoxContainer" parent="Column" unique_id=628286020]
+[node name="KeepColorGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=628286020]
 layout_mode = 2
 
-[node name="KeepColorTitle" type="Label" parent="Column/KeepColorGroup" unique_id=100586497]
+[node name="KeepColorTitle" type="Label" parent="ScrollContainer/Column/KeepColorGroup" unique_id=100586497]
 layout_mode = 2
 text = "Keep Original Color"
 vertical_alignment = 1
 
-[node name="KeepColor" type="HSlider" parent="Column/KeepColorGroup" unique_id=927434198]
+[node name="KeepColor" type="HSlider" parent="ScrollContainer/Column/KeepColorGroup" unique_id=927434198]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -286,21 +320,21 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
-[node name="KeepColorVal" type="Label" parent="Column/KeepColorGroup" unique_id=1129096640]
+[node name="KeepColorVal" type="Label" parent="ScrollContainer/Column/KeepColorGroup" unique_id=1129096640]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.50"
 horizontal_alignment = 2
 
-[node name="SaturationGroup" type="VBoxContainer" parent="Column" unique_id=1519306075]
+[node name="SaturationGroup" type="VBoxContainer" parent="ScrollContainer/Column" unique_id=1519306075]
 layout_mode = 2
 
-[node name="SaturationTitle" type="Label" parent="Column/SaturationGroup" unique_id=1502971202]
+[node name="SaturationTitle" type="Label" parent="ScrollContainer/Column/SaturationGroup" unique_id=1502971202]
 layout_mode = 2
 text = "Saturation"
 vertical_alignment = 1
 
-[node name="Saturation" type="HSlider" parent="Column/SaturationGroup" unique_id=46075046]
+[node name="Saturation" type="HSlider" parent="ScrollContainer/Column/SaturationGroup" unique_id=46075046]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -308,12 +342,12 @@ max_value = 1.0
 step = 0.01
 value = 1.0
 
-[node name="SaturationVal" type="Label" parent="Column/SaturationGroup" unique_id=1542536034]
+[node name="SaturationVal" type="Label" parent="ScrollContainer/Column/SaturationGroup" unique_id=1542536034]
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "1.00"
 horizontal_alignment = 2
 
-[node name="ApplyButton" type="Button" parent="Column" unique_id=692911567]
+[node name="ApplyButton" type="Button" parent="ScrollContainer/Column" unique_id=692911567]
 layout_mode = 2
 text = "Set as Diffuse"

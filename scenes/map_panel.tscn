@@ -1,72 +1,82 @@
-[gd_scene load_steps=2 format=3 uid="uid://hb34uhiw72w0"]
+[gd_scene format=3]
 
-[ext_resource type="Script" uid="uid://5vcjbpkwielj" path="res://ui/map_box.gd" id="1_mapbox"]
+[ext_resource type="Script" path="res://ui/map_box.gd" id="1_mapbox"]
 
-[node name="Map" type="PanelContainer"]
+[node name="Map" type="PanelContainer" unique_id=112852368 node_paths=PackedStringArray("title_label", "create_button", "preview", "paste_button", "copy_button", "open_button", "save_button", "quick_save_button", "preview_button", "clear_button")]
 custom_minimum_size = Vector2(110, 250)
 script = ExtResource("1_mapbox")
+title_label = NodePath("Box/Title")
+create_button = NodePath("Box/Createrow/Create")
+preview = NodePath("Box/Preview")
+paste_button = NodePath("Box/IOSrow/Paste")
+copy_button = NodePath("Box/IOSrow/Copy")
+open_button = NodePath("Box/IOSrow/Open")
+save_button = NodePath("Box/IOSrow/Save")
+quick_save_button = NodePath("Box/Quickrow/QuickSave")
+preview_button = NodePath("Box/Quickrow/Preview")
+clear_button = NodePath("Box/Createrow/Clear")
 
-[node name="Box" type="VBoxContainer" parent="."]
+[node name="Box" type="VBoxContainer" parent="." unique_id=362263528]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Title" type="Label" parent="Box"]
+[node name="Title" type="Label" parent="Box" unique_id=98299777]
 layout_mode = 2
 text = "Map"
 horizontal_alignment = 1
 
-[node name="Preview" type="TextureRect" parent="Box"]
+[node name="Preview" type="TextureRect" parent="Box" unique_id=1233373152]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="IOSrow" type="HBoxContainer" parent="Box"]
+[node name="IOSrow" type="HBoxContainer" parent="Box" unique_id=1928072808]
 layout_mode = 2
 
-[node name="Paste" type="Button" parent="Box/IOSrow"]
+[node name="Paste" type="Button" parent="Box/IOSrow" unique_id=942898928]
 layout_mode = 2
 tooltip_text = "Paste from clipboard"
 text = "P"
 
-[node name="Copy" type="Button" parent="Box/IOSrow"]
+[node name="Copy" type="Button" parent="Box/IOSrow" unique_id=1368103438]
 layout_mode = 2
 tooltip_text = "Copy to clipboard"
 text = "C"
 
-[node name="Open" type="Button" parent="Box/IOSrow"]
+[node name="Open" type="Button" parent="Box/IOSrow" unique_id=1300801939]
 layout_mode = 2
 tooltip_text = "Open a map from disk"
 text = "O"
 
-[node name="Save" type="Button" parent="Box/IOSrow"]
+[node name="Save" type="Button" parent="Box/IOSrow" unique_id=2142843946]
 layout_mode = 2
 tooltip_text = "Save this map to disk"
 text = "S"
 
-[node name="Quickrow" type="HBoxContainer" parent="Box"]
+[node name="Quickrow" type="HBoxContainer" parent="Box" unique_id=1272060657]
 layout_mode = 2
 
-[node name="QuickSave" type="Button" parent="Box/Quickrow"]
+[node name="QuickSave" type="Button" parent="Box/Quickrow" unique_id=127129925]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Save to the last used path for this map"
 text = "Quick Save"
 
-[node name="Preview" type="Button" parent="Box/Quickrow"]
+[node name="Preview" type="Button" parent="Box/Quickrow" unique_id=22403476]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Show this map on the 3D preview"
 text = "Preview"
 
-[node name="Createrow" type="HBoxContainer" parent="Box"]
+[node name="Createrow" type="HBoxContainer" parent="Box" unique_id=2099137416]
 layout_mode = 2
 
-[node name="Create" type="Button" parent="Box/Createrow"]
+[node name="Create" type="Button" parent="Box/Createrow" unique_id=1162667144]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Create"
 
-[node name="Clear" type="Button" parent="Box/Createrow"]
+[node name="Clear" type="Button" parent="Box/Createrow" unique_id=248216429]
 layout_mode = 2
 text = "Clear"

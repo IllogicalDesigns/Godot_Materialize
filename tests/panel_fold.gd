@@ -19,6 +19,9 @@ extends Node
 ## without touching the settings, and the panel fits the window when the samples
 ## are folded and overflows it when they are open, which is the bug being fixed.
 ##
+## Every widget the test touches is reached through the panel's `@export`
+## references, never a node path (`CODING_RULES.md`).
+##
 ## Layout only, so it runs headless:
 ##   godot --headless --path . res://tests/panel_fold.tscn
 ## A real display works too (the shell then generates the stone source first).
@@ -26,7 +29,7 @@ extends Node
 const WARMUP_FRAMES := 5
 
 var _main: Node3D
-var _panel: Control
+var _panel: HeightPanel
 var _frames := 0
 var _phase := 0
 ## phase -> the panel size the layout demanded at that state.
@@ -47,7 +50,7 @@ func _process(_delta: float) -> void:
 		return
 	match _phase:
 		PHASE_WARMUP:
-			_panel = _main._panel_slot.get_child(0)
+			_panel = _main._panel_slot.get_child(0) as HeightPanel
 			_report("state 1: both samples folded (Use off, the default)")
 			_set_use(1, true)
 			_set_use(2, true)
@@ -71,18 +74,27 @@ func _next(phase: int) -> void:
 	_phase = phase
 	_frames = 0
 
+func _group(sample: int) -> CollapseGroup:
+	return _panel.sample1_fold if sample == 1 else _panel.sample2_fold
+
+func _use_check(sample: int) -> CheckBox:
+	return _panel.use1_check if sample == 1 else _panel.use2_check
+
+func _isolate_check(sample: int) -> CheckBox:
+	return _panel.isolate1_check if sample == 1 else _panel.isolate2_check
+
 ## Presses a sample's "Use Color Sample N" checkbox the way a click does: the
 ## `toggled` signal is what the panel listens to, and setting `button_pressed`
 ## first keeps the box's visual state in step with the settings.
 func _set_use(sample: int, on: bool) -> void:
-	var check: CheckBox = _panel.get_node("Column/Sample%dGroup/Header/Use%d" % [sample, sample])
+	var check: CheckBox = _use_check(sample)
 	check.button_pressed = on
 	check.emit_signal("toggled", on)
 
 ## Presses a sample's fold button the way a click does, on the `toggled` signal
 ## the group listens to.
 func _click_fold(sample: int) -> void:
-	var fold: Button = _panel.get_node("Column/Sample%dGroup/Header/Fold" % sample)
+	var fold: Button = _group(sample).fold_button
 	fold.button_pressed = not fold.button_pressed
 	fold.emit_signal("toggled", fold.button_pressed)
 
@@ -93,13 +105,11 @@ func _report(caption: String) -> void:
 	print("  panel size ", _panel.size, " in slot ", _main._panel_slot.size,
 		", window ", get_tree().root.size)
 	for sample: int in [1, 2]:
-		var group: CollapseGroup = _panel.get_node("Column/Sample%dGroup" % sample)
-		var header: Control = _panel.get_node("Column/Sample%dGroup/Header" % sample)
-		var body: Control = _panel.get_node("Column/Sample%dGroup/Body" % sample)
+		var group: CollapseGroup = _group(sample)
 		print("  sample ", sample, ": collapsed=", group.collapsed,
-			" group=", group.size, " header=", header.size,
-			" body visible=", body.visible, " body=", body.size)
-	var set_button: Button = _panel.get_node("Column/SetButton")
+			" group=", group.size, " header=", group.header.size,
+			" body visible=", group.body.visible, " body=", group.body.size)
+	var set_button: Button = _panel.set_button
 	var rect: Rect2 = set_button.get_global_rect()
 	print("  Set as Height Map: top ", rect.position.y, " bottom ", rect.end.y,
 		" panel bottom ", _panel.get_global_rect().end.y)
@@ -107,45 +117,40 @@ func _report(caption: String) -> void:
 
 ## The settings / header checks at state 3, where Use 2 has just gone off.
 func _checks_use_off() -> void:
-	var sample1: CollapseGroup = _panel.get_node("Column/Sample1Group")
-	var sample2: CollapseGroup = _panel.get_node("Column/Sample2Group")
-	var sample2_header: Control = _panel.get_node("Column/Sample2Group/Header")
+	var sample1: CollapseGroup = _group(1)
+	var sample2: CollapseGroup = _group(2)
 	var use1: bool = bool(_main._active.settings()["sample1"]["use"])
 	var use2: bool = bool(_main._active.settings()["sample2"]["use"])
-	var isolate1: CheckBox = _panel.get_node("Column/Sample1Group/Header/Isolate1")
-	var isolate2: CheckBox = _panel.get_node("Column/Sample2Group/Header/Isolate2")
 
 	print("panel_fold checks (Use boxes):")
 	_check("sample 1 open because Use 1 is on", not sample1.collapsed, use1)
 	_check("sample 2 folded because Use 2 is off", sample2.collapsed, not use2)
-	_check("Isolate 1 enabled with its sample", not isolate1.disabled, use1)
-	_check("Isolate 2 greyed out with its sample", isolate2.disabled, not use2)
+	_check("Isolate 1 enabled with its sample", not _isolate_check(1).disabled, use1)
+	_check("Isolate 2 greyed out with its sample", _isolate_check(2).disabled, not use2)
 	# A folded group is only its header row: the swatch, "Pick Color", and the
 	# six faders come out of the column.
-	_check("folded group is only its header row", sample2.size.y == sample2_header.size.y,
+	_check("folded group is only its header row", sample2.size.y == sample2.header.size.y,
 		true)
 
 ## The fold button checks at state 4, where the button has opened Sample 2 while
 ## its Use box is still off. Folding is a layout control, so it must not write
 ## settings: a user can look at the faders of a sample they have switched off.
 func _checks_button() -> void:
-	var sample2: CollapseGroup = _panel.get_node("Column/Sample2Group")
-	var sample2_body: Control = _panel.get_node("Column/Sample2Group/Body")
-	var isolate2: CheckBox = _panel.get_node("Column/Sample2Group/Header/Isolate2")
+	var sample2: CollapseGroup = _group(2)
 	var use2: bool = bool(_main._active.settings()["sample2"]["use"])
 
 	print("panel_fold checks (fold button):")
 	_check("the fold button opens the body", not sample2.collapsed, true)
-	_check("the body becomes visible", sample2_body.visible, true)
+	_check("the body becomes visible", sample2.body.visible, true)
 	_check("the fold button does not switch the sample on", not use2, true)
-	_check("Isolate 2 stays greyed out", isolate2.disabled, true)
+	_check("Isolate 2 stays greyed out", _isolate_check(2).disabled, true)
 
 ## The width and height the open sample rows demand, measured against the window
 ## the app opens at (`display/window/size/viewport_height`): a headless run
 ## reports a 64 x 64 root window, and the sizes a container demands are the same
 ## in both, which is what the check is about.
 func _fit() -> void:
-	var ui: MarginContainer = _main.get_node("UI")
+	var ui: MarginContainer = _main._ui
 	var window_height := float(int(ProjectSettings.get_setting("display/window/size/viewport_height")))
 	var top := float(int(ui.get_theme_constant("margin_top")))
 	var bottom := float(int(ui.get_theme_constant("margin_bottom")))

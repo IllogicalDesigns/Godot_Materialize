@@ -407,7 +407,8 @@ NVIDIA RTX 3080). What is verified:
 - `godot --headless --path . --import`, `godot --path . --headless --quit`, and
   `godot --headless -e --path . --quit` run clean (scripts parse, scenes load, the
   Height panel and the Diffuse panel instantiate in `MapOptionsPanel` with every
-  node path resolving, and the roadmap prints with Diffuse marked ported). A
+  `@export` node reference resolving, and the roadmap prints with Diffuse marked
+  ported). A
   headless run skips the pass chain, because the headless display server cannot
   render the `SubViewport` quad.
 - **The algorithm itself, on the CPU.** `tests/height_cpu.tscn` is a pure

@@ -5,10 +5,12 @@ extends Node3D
 ## and docs/how_materialize_works.md for the algorithm.
 ##
 ## The shell owns the shared state: the `Blit` framework, the map store
-## (`maps`), the source diffuse, the map box row, the tool panel slot
-## (`UI/MapOptionsPanel/PanelSlot`), and the 3D preview mesh. Each texture map
-## lives in its own module under `MapModules/` - see `MapModules/map_module.gd`.
-## Only Height is ported so far; its module is `MapModules/heightMap/`.
+## (`maps`), the source diffuse, the map box row, the tool panel slot, and the
+## 3D preview mesh. Every widget it wires is an `@export` assigned in
+## `scenes/main.tscn`, so this script holds no node paths (`CODING_RULES.md`).
+## Each texture map lives in its own module under `MapModules/` - see
+## `MapModules/map_module.gd`. Only Height is ported so far; its module is
+## `MapModules/heightMap/`.
 ##
 ## Clicking a box's Create button makes that map active: its panel slots into
 ## `MapOptionsPanel`, its map feeds the `MeshInstance3D` preview, and the mesh
@@ -48,19 +50,41 @@ const MAP_BOXES: Array[Dictionary] = [
 		"module": "MapModules/aoMap/", "status": "not started"},
 ]
 
-## The boxes in `scenes/main.tscn`, in the same order as MAP_BOXES.
-const BOX_NODE_NAMES := ["MapPanel", "MapPanel2", "MapPanel3", "MapPanel4",
-	"MapPanel5", "MapPanel6", "MapPanel7"]
+## The map boxes, in the same order as MAP_BOXES, assigned in the Inspector.
+@export var boxes: Array[MapBox]
 
-@onready var _mesh: MeshInstance3D = $MeshInstance3D
-@onready var _panel_slot: VBoxContainer = $UI/MapOptionsPanel/PanelSlot
-@onready var _status: Label = $UI/MapsAnd3DFunctions/Toolbar/Status
-@onready var _resolution: OptionButton = $UI/MapsAnd3DFunctions/Toolbar/Resolution
-@onready var _load_dialog: FileDialog = $LoadDialog
-@onready var _save_dialog: FileDialog = $SaveDialog
-@onready var _save_all_dialog: FileDialog = $SaveAllDialog
-@onready var _debounce: Timer = $DebounceTimer
-@onready var _save_panel: PanelContainer = $UI/MapsAnd3DFunctions/Maps/SavePanel
+## The 3D preview mesh, the panel slot that the active module's panel goes
+## into, the status label, the working resolution picker, and the dialogs.
+@export var _mesh: MeshInstance3D
+@export var _panel_slot: VBoxContainer
+@export var _status: Label
+@export var _resolution: OptionButton
+@export var _load_dialog: FileDialog
+@export var _save_dialog: FileDialog
+@export var _save_all_dialog: FileDialog
+@export var _debounce: Timer
+@export var _save_panel: PanelContainer
+
+## The whole `UI` layer, which "Hide Gui" toggles.
+@export var _ui: Control
+
+## The toolbar, the view-button row, the corner buttons, and the Save panel's
+## own widgets. Every one of them is assigned in `scenes/main.tscn`, so the
+## shell wires its UI without a single node path (`CODING_RULES.md`).
+@export var _load_diffuse_button: Button
+@export var _stone_pattern_button: Button
+@export var _generate_button: Button
+@export var _save_map_button: Button
+@export var _save_all_button: Button
+@export var _save_format: OptionButton
+@export var _show_full_material_button: Button
+@export var _next_cube_map_button: Button
+@export var _tile_maps_button: Button
+@export var _clear_all_maps_button: Button
+@export var _toggle_fullscreen_button: Button
+@export var _quit_button: Button
+@export var _make_suggestion_button: Button
+@export var _hide_gui_button: Button
 
 var blit: Blit
 
@@ -97,6 +121,8 @@ var _mesh_material: ShaderMaterial
 var _neutral: ImageTexture
 
 func _ready() -> void:
+	_check_exports()
+
 	# Report the roadmap to stdout so headless runs stay useful.
 	for row in MAP_BOXES:
 		print("[materialize] %s -> %s [%s]" % [row["unity"], row["module"], row["status"]])
@@ -120,7 +146,7 @@ func _ready() -> void:
 
 	for index in MAP_BOXES.size():
 		var spec: Dictionary = MAP_BOXES[index]
-		var box: MapBox = get_node("UI/MapsAnd3DFunctions/Maps/" + BOX_NODE_NAMES[index])
+		var box: MapBox = boxes[index]
 		box.map_type = spec["type"]
 		box.title = spec["title"]
 		box.create_label = spec["create"]
@@ -160,32 +186,28 @@ func _ready() -> void:
 ## of connection blocks and every handler is visible in one place. The map box
 ## signals are wired per box in `_ready`.
 func _wire_ui() -> void:
-	var toolbar: Control = $UI/MapsAnd3DFunctions/Toolbar
-	(toolbar.get_node("LoadDiffuse") as Button).pressed.connect(_on_load_pressed)
-	(toolbar.get_node("StonePattern") as Button).pressed.connect(_on_pattern_pressed)
-	(toolbar.get_node("Resolution") as OptionButton).item_selected.connect(_on_resolution_selected)
-	(toolbar.get_node("Generate") as Button).pressed.connect(_on_generate_pressed)
-	(toolbar.get_node("SavePNG") as Button).pressed.connect(_on_save_pressed)
+	_load_diffuse_button.pressed.connect(_on_load_pressed)
+	_stone_pattern_button.pressed.connect(_on_pattern_pressed)
+	_resolution.item_selected.connect(_on_resolution_selected)
+	_generate_button.pressed.connect(_on_generate_pressed)
+	_save_map_button.pressed.connect(_on_save_pressed)
 
-	(_save_panel.get_node("VBoxContainer/Button") as Button).pressed.connect(_on_save_all_pressed)
+	_save_all_button.pressed.connect(_on_save_all_pressed)
 
 	_load_dialog.file_selected.connect(_on_load_file_selected)
 	_save_dialog.file_selected.connect(_on_save_file_selected)
 	_save_all_dialog.dir_selected.connect(_on_save_all_dir_selected)
 	_debounce.timeout.connect(_on_debounce_timeout)
 
-	# The node is named "3DViewFunctions" (`MainGui.cs`'s view-button row), and a
-	# name starting with a digit cannot be written in a $ path, so use get_node.
-	var view: Control = get_node("UI/MapsAnd3DFunctions/3DViewFunctions")
-	(view.get_node("ShowFullMaterial") as Button).pressed.connect(_on_show_full_material_pressed)
-	(view.get_node("NextCubeMap") as Button).pressed.connect(_on_next_cube_map_pressed)
-	(view.get_node("TileMaps") as Button).pressed.connect(_on_tile_maps_pressed)
-	(view.get_node("ClearAllTextureMaps") as Button).pressed.connect(_on_clear_all_pressed)
+	_show_full_material_button.pressed.connect(_on_show_full_material_pressed)
+	_next_cube_map_button.pressed.connect(_on_next_cube_map_pressed)
+	_tile_maps_button.pressed.connect(_on_tile_maps_pressed)
+	_clear_all_maps_button.pressed.connect(_on_clear_all_pressed)
 
-	($UI/LowerRightButtons/ToggleFullscreen as Button).pressed.connect(_on_fullscreen_pressed)
-	($UI/LowerRightButtons/Quit as Button).pressed.connect(_on_quit_pressed)
-	($UI/UpperRightButtons/MakeSuggestion as Button).pressed.connect(_on_make_suggestion_pressed)
-	($UI/UpperRightButtons/HideGui as Button).pressed.connect(_on_hide_gui_pressed)
+	_toggle_fullscreen_button.pressed.connect(_on_fullscreen_pressed)
+	_quit_button.pressed.connect(_on_quit_pressed)
+	_make_suggestion_button.pressed.connect(_on_make_suggestion_pressed)
+	_hide_gui_button.pressed.connect(_on_hide_gui_pressed)
 
 func _add_height_module() -> MapModule:
 	var module := HeightMapModule.new()
@@ -530,7 +552,7 @@ func _on_save_all_pressed() -> void:
 	_save_all_dialog.show()
 
 func _on_save_all_dir_selected(path: String) -> void:
-	var format_id := (_save_panel.get_node("VBoxContainer/FormatOption") as OptionButton).get_selected_id()
+	var format_id := _save_format.get_selected_id()
 	var extension: String = ["bmp", "jpg", "png", "tga", "tiff"][format_id]
 	# Godot writes PNG, JPG and WebP. BMP, TGA and TIFF need a custom writer
 	# (`MainGui.cs` used FreeImage.dll), so the port writes PNG and says so.
@@ -595,8 +617,7 @@ func _on_clear_all_pressed() -> void:
 	_set_status("Cleared all texture maps.")
 
 func _on_hide_gui_pressed() -> void:
-	var ui: Control = $UI
-	ui.visible = not ui.visible
+	_ui.visible = not _ui.visible
 
 func _on_make_suggestion_pressed() -> void:
 	_set_status("Suggestions go to the Materialize forum; this port has no mail window.")
@@ -607,10 +628,25 @@ func _on_quit_pressed() -> void:
 func _on_fullscreen_pressed() -> void:
 	# Materialize's button label swaps between "Windowed" and "Full Screen"
 	# (`MainGui.cs` lines 451-461), same rect.
-	var button: Button = $UI/LowerRightButtons/ToggleFullscreen
 	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		button.text = "Windowed"
+		_toggle_fullscreen_button.text = "Windowed"
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		button.text = "Full Screen"
+		_toggle_fullscreen_button.text = "Full Screen"
+
+## Reports exports that were never assigned in the Inspector, so a missing
+## widget shows up as an error at load instead of a null crash mid-run.
+func _check_exports() -> void:
+	for name: String in ["boxes", "_mesh", "_panel_slot", "_status", "_resolution",
+			"_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce",
+			"_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button",
+			"_generate_button", "_save_map_button", "_save_all_button", "_save_format",
+			"_show_full_material_button", "_next_cube_map_button", "_tile_maps_button",
+			"_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button",
+			"_make_suggestion_button", "_hide_gui_button"]:
+		if get(name) == null:
+			push_error("main.gd export %s is not assigned in scenes/main.tscn" % name)
+	if boxes.size() != MAP_BOXES.size():
+		push_error("main.gd boxes has %d entries, MAP_BOXES has %d"
+			% [boxes.size(), MAP_BOXES.size()])

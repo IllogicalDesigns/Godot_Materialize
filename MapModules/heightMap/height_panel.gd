@@ -19,13 +19,14 @@ class_name HeightPanel
 ##   "Final Gain" (-0.5..0.5) "Final Contrast" (-10..10) "Final Bias" (-1..1)
 ##   "Set as Height Map"
 ##
-## The widgets are authored in `MapModules/heightMap/height_panel.tscn`; this
-## script wires each one to a settings path in the shared settings Dictionary
-## that `HeightFromDiffuse` reads when it generates. Every edit emits
-## `settings_changed` (the shell debounces and regenerates), `preview_changed`
-## for the reveal slider (preview only, no regeneration), `apply_requested` for
-## "Set as Height Map", and `color_pick_requested` asks the shell to sample a
-## colour from the source.
+## The widgets are authored in `MapModules/heightMap/height_panel.tscn`; every
+## widget this script wires is an `@export` assigned in the Inspector, so the
+## script holds no node paths (`CODING_RULES.md`). Each export is bound to a
+## settings path in the shared settings Dictionary that `HeightFromDiffuse`
+## reads when it generates. Every edit emits `settings_changed` (the shell
+## debounces and regenerates), `preview_changed` for the reveal slider (preview
+## only, no regeneration), `apply_requested` for "Set as Height Map", and
+## `color_pick_requested` asks the shell to sample a colour from the source.
 ##
 ## Deviations from Unity: Materialize draws at absolute pixel rects inside a
 ## draggable window; Godot uses containers, so the groups stretch. Materialize's
@@ -37,118 +38,69 @@ class_name HeightPanel
 ## swatch, "Pick Color", and faders are drawn only while `UseSample1` is on
 ## (`HeightFromDiffuseGui.cs` lines 714-751, 760-797). Godot stacks the groups
 ## in one column, so the two sample bodies are 110 px of faders each and push
-## "Set as Height Map" out of the panel. Each sample is therefore a
-## `CollapseGroup` (`ui/collapse_group.gd`): its header keeps the two
-## checkboxes reachable while the body is folded, and `Use Color Sample N` off
-## folds that sample, which is Unity's behaviour expressed as a fold.
-##
-## "Sample Spread" / "Sample Spread Boost" are Unity's Normal-mode sliders and
-## are not drawn: the Normal source comes with Normal From Height.
+## the window taller than Unity's 590 px.
 
 signal settings_changed()
 signal preview_changed()
 signal apply_requested()
 signal color_pick_requested(sample_index: int)
 
-## Rows: [slider node path, settings path, value label node path, preview-only].
-## The faders run coarse (Blur6, leftmost) to fine (Blur0, rightmost), exactly
-## as Materialize places them.
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const SLIDER_ROWS := [
-	["Column/RevealGroup/Reveal", ["reveal"], "Column/RevealGroup/RevealVal", true],
+## The Reveal pair: the preview slider and its value label.
+@export var reveal_slider: Slider
+@export var reveal_label: Label
 
-	["Column/WeightGroup/Row/Faders/W6/Slider", ["weights", 6], "Column/WeightGroup/Row/Faders/W6/Val"],
-	["Column/WeightGroup/Row/Faders/W5/Slider", ["weights", 5], "Column/WeightGroup/Row/Faders/W5/Val"],
-	["Column/WeightGroup/Row/Faders/W4/Slider", ["weights", 4], "Column/WeightGroup/Row/Faders/W4/Val"],
-	["Column/WeightGroup/Row/Faders/W3/Slider", ["weights", 3], "Column/WeightGroup/Row/Faders/W3/Val"],
-	["Column/WeightGroup/Row/Faders/W2/Slider", ["weights", 2], "Column/WeightGroup/Row/Faders/W2/Val"],
-	["Column/WeightGroup/Row/Faders/W1/Slider", ["weights", 1], "Column/WeightGroup/Row/Faders/W1/Val"],
-	["Column/WeightGroup/Row/Faders/W0/Slider", ["weights", 0], "Column/WeightGroup/Row/Faders/W0/Val"],
+## The three fader groups, in scene order. Weight faders run coarse (Blur6,
+## leftmost) to fine (Blur0, rightmost), exactly as Materialize places them;
+## the settings key is `weights` / `contrasts` indexed by the reversed position.
+@export var weight_faders: Array[FaderGroup]
+@export var contrast_faders: Array[FaderGroup]
+@export var sample1_faders: Array[FaderGroup]
+@export var sample2_faders: Array[FaderGroup]
 
-	["Column/ContrastGroup/Row/Faders/C6/Slider", ["contrasts", 6], "Column/ContrastGroup/Row/Faders/C6/Val"],
-	["Column/ContrastGroup/Row/Faders/C5/Slider", ["contrasts", 5], "Column/ContrastGroup/Row/Faders/C5/Val"],
-	["Column/ContrastGroup/Row/Faders/C4/Slider", ["contrasts", 4], "Column/ContrastGroup/Row/Faders/C4/Val"],
-	["Column/ContrastGroup/Row/Faders/C3/Slider", ["contrasts", 3], "Column/ContrastGroup/Row/Faders/C3/Val"],
-	["Column/ContrastGroup/Row/Faders/C2/Slider", ["contrasts", 2], "Column/ContrastGroup/Row/Faders/C2/Val"],
-	["Column/ContrastGroup/Row/Faders/C1/Slider", ["contrasts", 1], "Column/ContrastGroup/Row/Faders/C1/Val"],
-	["Column/ContrastGroup/Row/Faders/C0/Slider", ["contrasts", 0], "Column/ContrastGroup/Row/Faders/C0/Val"],
+## The preset buttons, in Unity's row order.
+@export var weight_default_button: Button
+@export var weight_details_button: Button
+@export var weight_displace_button: Button
+@export var contrast_default_button: Button
+@export var contrast_cracks_button: Button
+@export var contrast_funky_button: Button
 
-	["Column/Sample1Group/Body/Row/Faders/H1/Slider", ["sample1", "hue"], "Column/Sample1Group/Body/Row/Faders/H1/Val"],
-	["Column/Sample1Group/Body/Row/Faders/S1/Slider", ["sample1", "sat"], "Column/Sample1Group/Body/Row/Faders/S1/Val"],
-	["Column/Sample1Group/Body/Row/Faders/L1/Slider", ["sample1", "lum"], "Column/Sample1Group/Body/Row/Faders/L1/Val"],
-	["Column/Sample1Group/Body/Row/Faders/ML1/Slider", ["sample1", "mask_low"], "Column/Sample1Group/Body/Row/Faders/ML1/Val"],
-	["Column/Sample1Group/Body/Row/Faders/MH1/Slider", ["sample1", "mask_high"], "Column/Sample1Group/Body/Row/Faders/MH1/Val"],
-	["Column/Sample1Group/Body/Row/Faders/SH1/Slider", ["sample1", "height"], "Column/Sample1Group/Body/Row/Faders/SH1/Val"],
+## The single slider pairs: Blend, Final Gain, Final Contrast, Final Bias.
+@export var blend_slider: Slider
+@export var blend_label: Label
+@export var gain_slider: Slider
+@export var gain_label: Label
+@export var final_contrast_slider: Slider
+@export var final_contrast_label: Label
+@export var final_bias_slider: Slider
+@export var final_bias_label: Label
 
-	["Column/Sample2Group/Body/Row/Faders/H2/Slider", ["sample2", "hue"], "Column/Sample2Group/Body/Row/Faders/H2/Val"],
-	["Column/Sample2Group/Body/Row/Faders/S2/Slider", ["sample2", "sat"], "Column/Sample2Group/Body/Row/Faders/S2/Val"],
-	["Column/Sample2Group/Body/Row/Faders/L2/Slider", ["sample2", "lum"], "Column/Sample2Group/Body/Row/Faders/L2/Val"],
-	["Column/Sample2Group/Body/Row/Faders/ML2/Slider", ["sample2", "mask_low"], "Column/Sample2Group/Body/Row/Faders/ML2/Val"],
-	["Column/Sample2Group/Body/Row/Faders/MH2/Slider", ["sample2", "mask_high"], "Column/Sample2Group/Body/Row/Faders/MH2/Val"],
-	["Column/Sample2Group/Body/Row/Faders/SH2/Slider", ["sample2", "height"], "Column/Sample2Group/Body/Row/Faders/SH2/Val"],
+## The source radio row.
+@export var use_diffuse_check: CheckBox
+@export var use_original_check: CheckBox
+@export var use_normal_check: CheckBox
 
-	["Column/BlendGroup/Blend", ["sample_blend"], "Column/BlendGroup/BlendVal"],
+## The sample header checkboxes.
+@export var use1_check: CheckBox
+@export var isolate1_check: CheckBox
+@export var use2_check: CheckBox
+@export var isolate2_check: CheckBox
 
-	["Column/FinalGroup/Gain", ["final_gain"], "Column/FinalGroup/GainVal"],
-	["Column/FinalGroup/Contrast", ["final_contrast"], "Column/FinalGroup/ContrastVal"],
-	["Column/FinalGroup/Bias", ["final_bias"], "Column/FinalGroup/BiasVal"],
-]
+## The sample colour swatches and "Pick Color" buttons.
+@export var color1_picker: ColorPicker
+@export var color2_picker: ColorPicker
+@export var pick1_button: Button
+@export var pick2_button: Button
 
-## Rows: [checkbox node path, settings path].
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const CHECK_ROWS := [
-	["Column/SourceRow/UseDiffuse", ["use_adjusted_diffuse"]],
-	["Column/SourceRow/UseOriginal", ["use_original_diffuse"]],
-	["Column/SourceRow/UseNormal", ["use_normal"]],
-	["Column/Sample1Group/Header/Use1", ["sample1", "use"]],
-	["Column/Sample1Group/Header/Isolate1", ["sample1", "isolate"]],
-	["Column/Sample2Group/Header/Use2", ["sample2", "use"]],
-	["Column/Sample2Group/Header/Isolate2", ["sample2", "isolate"]],
-]
+## The sample fold groups.
+@export var sample1_fold: CollapseGroup
+@export var sample2_fold: CollapseGroup
 
-## sample settings key -> [fold group node path, isolate checkbox node path].
-## `Use Color Sample N` drives its fold group: Unity draws a sample's swatch,
-## "Pick Color", and faders only while `UseSampleN` is on, so the sample body
-## folds when the box goes off, and Isolate Mask is disabled with it
-## (`HeightFromDiffuseGui.cs` lines 714-751, 760-797, and `GUI.enabled` on the
-## isolate toggle, line 717).
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const SAMPLE_FOLDS := {
-	"sample1": ["Column/Sample1Group", "Column/Sample1Group/Header/Isolate1"],
-	"sample2": ["Column/Sample2Group", "Column/Sample2Group/Header/Isolate2"],
-}
+## "Set as Height Map".
+@export var set_button: Button
 
-## Rows: [color picker node path, settings path].
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const COLOR_ROWS := [
-	["Column/Sample1Group/Body/Row/Left/Color1", ["sample1", "color"]],
-	["Column/Sample2Group/Body/Row/Left/Color2", ["sample2", "color"]],
-]
-
-## Rows: [button node path, sample index].
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const PICK_ROWS := [
-	["Column/Sample1Group/Body/Row/Left/Pick1", 1],
-	["Column/Sample2Group/Body/Row/Left/Pick2", 2],
-]
-
-## Rows: [button node path, settings key, preset name]. Labels are Materialize's
-## button strings: Default / Details / Displace and Default / Cracks / Funky.
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const PRESET_ROWS := [
-	["Column/WeightGroup/Row/Presets/Default", "weights", "default"],
-	["Column/WeightGroup/Row/Presets/Details", "weights", "detail"],
-	["Column/WeightGroup/Row/Presets/Displace", "weights", "displace"],
-	["Column/ContrastGroup/Row/Presets/Default", "contrasts", "default"],
-	["Column/ContrastGroup/Row/Presets/Cracks", "contrasts", "cracked_mud"],
-	["Column/ContrastGroup/Row/Presets/Funky", "contrasts", "funky"],
-]
-
-## The source checkboxes that are not implemented yet stay disabled: the port
-## reads the loaded diffuse, and "Original Diffuse" / " Normal" need the
-## original image and a normal map source, which come with later tools.
-# TODO replace fragile direct paths Column/WeightGroup/Row/Presets/Default, with something more robust
-const DISABLED_SOURCE_CHECKS := ["Column/SourceRow/UseOriginal", "Column/SourceRow/UseNormal"]
+## The fader keys, in the order Materialize draws them inside a sample.
+const SAMPLE_KEYS := ["hue", "sat", "lum", "mask_low", "mask_high", "height"]
 
 var _settings: Dictionary = {}
 ## Set while widgets are being re-synced from settings, so writing a value back
@@ -159,21 +111,27 @@ var _syncing := false
 ## edits it in place, so the tool always sees the current values.
 func setup(settings: Dictionary) -> void:
 	_settings = settings
-	for path: String in DISABLED_SOURCE_CHECKS:
-		(get_node(path) as CheckBox).disabled = true
+	# The port reads the loaded diffuse; "Original Diffuse" and " Normal" need
+	# the original image and a normal map source, which come with later tools.
+	use_original_check.disabled = true
+	use_normal_check.disabled = true
 	refresh()
 
-## Push the settings Dictionary into the widgets.
+## Push the settings Dictionary into the widgets. Both row kinds have the shape
+## [widget, value label, settings path], so one loop covers sliders and faders.
 func refresh() -> void:
 	_syncing = true
-	for row: Array in SLIDER_ROWS:
-		var slider: Slider = get_node(row[0])
-		slider.value = float(_value(row[1]))
-		get_node(row[2]).text = "%.2f" % slider.value
-	for row: Array in CHECK_ROWS:
-		(get_node(row[0]) as CheckBox).button_pressed = bool(_value(row[1]))
-	for row: Array in COLOR_ROWS:
-		(get_node(row[0]) as ColorPicker).color = _value(row[1])
+	for row: Array in _fader_rows() + _slider_rows():
+		var value := float(_value(row[2]))
+		if row[0] is Slider:
+			row[0].value = value
+		else:
+			row[0].slider.value = value
+		row[1].text = "%.2f" % value
+	for row: Array in _check_rows():
+		row[0].button_pressed = bool(_value(row[1]))
+	for row: Array in _color_rows():
+		row[0].color = _value(row[1])
 	_sync_folds()
 	_syncing = false
 
@@ -183,23 +141,113 @@ func set_sample_color(sample_index: int, color: Color) -> void:
 	refresh()
 
 func _ready() -> void:
-	for row: Array in SLIDER_ROWS:
-		(get_node(row[0]) as Slider).value_changed.connect(_on_slider_changed.bind(row))
-	for row: Array in CHECK_ROWS:
-		(get_node(row[0]) as CheckBox).toggled.connect(_on_check_changed.bind(row))
-	for row: Array in COLOR_ROWS:
-		(get_node(row[0]) as ColorPicker).color_changed.connect(_on_color_changed.bind(row))
-	for row: Array in PICK_ROWS:
-		(get_node(row[0]) as Button).pressed.connect(_on_pick_pressed.bind(row))
-	for row: Array in PRESET_ROWS:
-		(get_node(row[0]) as Button).pressed.connect(_on_preset_pressed.bind(row))
-	($Column/SetButton as Button).pressed.connect(_on_set_pressed)
+	_check_exports()
+	for row: Array in _fader_rows():
+		row[0].slider.value_changed.connect(_on_slider_changed.bind(row))
+	for row: Array in _slider_rows():
+		row[0].value_changed.connect(_on_slider_changed.bind(row))
+	for row: Array in _check_rows():
+		row[0].toggled.connect(_on_check_changed.bind(row))
+	for row: Array in _color_rows():
+		row[0].color_changed.connect(_on_color_changed.bind(row))
+	for row: Array in _pick_rows():
+		row[0].pressed.connect(_on_pick_pressed.bind(row))
+	for row: Array in _preset_rows():
+		row[0].pressed.connect(_on_preset_pressed.bind(row))
+	set_button.pressed.connect(_on_set_pressed)
+
+## Rows: [fader group, value label, settings path], built from the exports. The
+## weight and contrast faders store the coarse-to-fine scene order in the
+## settings Array, so the settings index is the reversed position. Rows share
+## the shape of `_slider_rows`, so the handlers read `row[2]` for the settings
+## key and `row[1]` for the value label.
+func _fader_rows() -> Array:
+	var rows: Array = []
+	for i in weight_faders.size():
+		var group: FaderGroup = weight_faders[i]
+		rows.append([group, group.value_label, ["weights", weight_faders.size() - 1 - i]])
+	for i in contrast_faders.size():
+		var group: FaderGroup = contrast_faders[i]
+		rows.append([group, group.value_label, ["contrasts", contrast_faders.size() - 1 - i]])
+	for i in sample1_faders.size():
+		var group: FaderGroup = sample1_faders[i]
+		rows.append([group, group.value_label, ["sample1", SAMPLE_KEYS[i]]])
+	for i in sample2_faders.size():
+		var group: FaderGroup = sample2_faders[i]
+		rows.append([group, group.value_label, ["sample2", SAMPLE_KEYS[i]]])
+	return rows
+
+## Rows: [slider, value label, settings path, preview-only], built from the
+## exports, in Materialize's window order.
+func _slider_rows() -> Array:
+	return [
+		[reveal_slider, reveal_label, ["reveal"], true],
+		[blend_slider, blend_label, ["sample_blend"]],
+		[gain_slider, gain_label, ["final_gain"]],
+		[final_contrast_slider, final_contrast_label, ["final_contrast"]],
+		[final_bias_slider, final_bias_label, ["final_bias"]],
+	]
+
+## Rows: [checkbox, settings path].
+func _check_rows() -> Array:
+	return [
+		[use_diffuse_check, ["use_adjusted_diffuse"]],
+		[use_original_check, ["use_original_diffuse"]],
+		[use_normal_check, ["use_normal"]],
+		[use1_check, ["sample1", "use"]],
+		[isolate1_check, ["sample1", "isolate"]],
+		[use2_check, ["sample2", "use"]],
+		[isolate2_check, ["sample2", "isolate"]],
+	]
+
+## Rows: [color picker, settings path].
+func _color_rows() -> Array:
+	return [
+		[color1_picker, ["sample1", "color"]],
+		[color2_picker, ["sample2", "color"]],
+	]
+
+## Rows: [button, sample index].
+func _pick_rows() -> Array:
+	return [
+		[pick1_button, 1],
+		[pick2_button, 2],
+	]
+
+## Rows: [button, settings key, preset name]. Labels are Materialize's
+## button strings: Default / Details / Displace and Default / Cracks / Funky.
+func _preset_rows() -> Array:
+	return [
+		[weight_default_button, "weights", "default"],
+		[weight_details_button, "weights", "detail"],
+		[weight_displace_button, "weights", "displace"],
+		[contrast_default_button, "contrasts", "default"],
+		[contrast_cracks_button, "contrasts", "cracked_mud"],
+		[contrast_funky_button, "contrasts", "funky"],
+	]
+
+## sample settings key -> [fold group, isolate checkbox]. `Use Color Sample N`
+## drives its fold group: Unity draws a sample's swatch, "Pick Color", and
+## faders only while `UseSampleN` is on, so the sample body folds when the box
+## goes off, and Isolate Mask is disabled with it (`HeightFromDiffuseGui.cs`
+## lines 714-751, 760-797, and `GUI.enabled` on the isolate toggle, line 717).
+func _sample_folds() -> Array:
+	return [
+		["sample1", sample1_fold, isolate1_check],
+		["sample2", sample2_fold, isolate2_check],
+	]
 
 func _on_slider_changed(value: float, row: Array) -> void:
 	if _settings.is_empty():
 		return
-	_assign(row[1], value)
-	get_node(row[2]).text = "%.2f" % value
+	# Every row is [widget, value label, settings path, preview-only], so the
+	# settings key is row[2] and the label is row[1].
+	_assign(row[2], value)
+	if row[0] is Slider:
+		row[0].value = value
+	else:
+		row[0].slider.value = value
+	row[1].text = "%.2f" % value
 	if _syncing:
 		return
 	# The Height Reveal Slider is preview-only, so it does not need a
@@ -270,10 +318,10 @@ func _enforce_isolate(row: Array) -> void:
 ## sample is off, and "Isolate Mask" is greyed out with it, the way Unity's
 ## `GUI.enabled` covers the isolate toggle.
 func _sync_folds() -> void:
-	for sample: String in SAMPLE_FOLDS:
-		var use := bool(_settings[sample]["use"])
-		(get_node(SAMPLE_FOLDS[sample][0]) as CollapseGroup).set_collapsed(not use)
-		(get_node(SAMPLE_FOLDS[sample][1]) as CheckBox).disabled = not use
+	for fold: Array in _sample_folds():
+		var use := bool(_settings[fold[0]]["use"])
+		fold[1].set_collapsed(not use)
+		fold[2].disabled = not use
 
 func _on_color_changed(color: Color, row: Array) -> void:
 	if _settings.is_empty():
@@ -315,3 +363,32 @@ func _assign(target: Array, value: Variant) -> void:
 	for key in target.slice(0, -1):
 		node = node[key]
 	node[target[-1]] = value
+
+## Reports exports that were never assigned in the Inspector, so a missing
+## widget shows up as an error at load instead of a null crash mid-edit.
+func _check_exports() -> void:
+	for row: Array in _fader_rows():
+		if row[0] == null:
+			push_error("HeightPanel fader %s is not assigned in the Inspector" % row[2])
+	for row: Array in _slider_rows():
+		if row[0] == null:
+			push_error("HeightPanel slider %s is not assigned in the Inspector" % row[2])
+		elif row[1] == null:
+			push_error("HeightPanel value label %s is not assigned in the Inspector" % row[2])
+	for row: Array in _check_rows():
+		if row[0] == null:
+			push_error("HeightPanel checkbox %s is not assigned in the Inspector" % row[1])
+	for row: Array in _color_rows():
+		if row[0] == null:
+			push_error("HeightPanel colour picker %s is not assigned in the Inspector" % row[1])
+	for row: Array in _pick_rows():
+		if row[0] == null:
+			push_error("HeightPanel pick button %s is not assigned in the Inspector" % row[0])
+	for row: Array in _preset_rows():
+		if row[0] == null:
+			push_error("HeightPanel preset button %s is not assigned in the Inspector" % row[0])
+	for fold: Array in _sample_folds():
+		if fold[1] == null:
+			push_error("HeightPanel fold group %s is not assigned in the Inspector" % fold[0])
+	if set_button == null:
+		push_error("HeightPanel has no Set button assigned in the Inspector")

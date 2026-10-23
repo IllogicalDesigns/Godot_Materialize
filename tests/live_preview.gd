@@ -70,32 +70,34 @@ func _first_phase() -> void:
 	print("active panel in MapOptionsPanel: ", _main._panel_slot.get_child_count(),
 		" child(ren): ", (_main._panel_slot.get_child(0) as Node).name
 		if _main._panel_slot.get_child_count() > 0 else "none")
+	# Touch every widget the panel wires, so a missing Inspector assignment shows
+	# up as a null crash on stdout.
+	(_main._panel_slot.get_child(0) as HeightPanel)._check_exports()
 	if map != null:
 		_first_checksum = _checksum(map)
 		print("GPU height map: ", _stats(map))
 		print("expect min 0.401 max 0.634 mean 0.498 from the CPU reference")
 	# The Reveal slider is a preview control: setting it must write settings and
 	# the material uniform without starting a pass chain.
-	var panel: Control = _main._panel_slot.get_child(0)
-	var reveal: HSlider = panel.get_node("Column/RevealGroup/Reveal")
-	reveal.value = 0.35
+	var panel: HeightPanel = _main._panel_slot.get_child(0) as HeightPanel
+	panel.reveal_slider.value = 0.35
 	print("reveal slider -> settings ", _main._active.settings()["reveal"],
 		", material uniform ", _main._mesh_material.get_shader_parameter("reveal"))
 	# A preset click goes through settings -> debounce -> pass chain -> box preview.
-	panel.get_node("Column/WeightGroup/Row/Presets/Details").emit_signal("pressed")
+	panel.weight_details_button.pressed.emit()
 	_phase = PHASE_PRESET_GENERATING
 
 func _preset_phase() -> void:
 	var weights: Array = _main._active.settings()["weights"]
-	var panel: Control = _main._panel_slot.get_child(0)
+	var panel: HeightPanel = _main._panel_slot.get_child(0) as HeightPanel
 	var slider_values: Array = []
-	for fader in ["W6", "W5", "W4", "W3", "W2", "W1", "W0"]:
-		slider_values.append((panel.get_node("Column/WeightGroup/Row/Faders/" + fader + "/Slider") as Slider).value)
+	for fader: FaderGroup in panel.weight_faders:
+		slider_values.append(fader.slider.value)
 	print("after Details preset, status: ", _main._status.text)
 	print("settings weights (index 0 = Blur0, index 6 = Blur6): ", weights)
 	print("expect [0.7, 0.4, 0.3, 0.5, 0.8, 0.9, 0.7] from HeightFromDiffuseSettings detail preset")
 	print("fader W6..W0 slider values: ", slider_values)
-	var box_preview: TextureRect = (_main._boxes["height"] as MapBox).get_node("Box/Preview")
+	var box_preview: TextureRect = (_main._boxes["height"] as MapBox).preview
 	print("height map box preview texture: ", box_preview.texture,
 		" size=", (box_preview.texture.get_size() if box_preview.texture != null else Vector2i(0, 0)))
 	var map: Image = _main.maps["height"]

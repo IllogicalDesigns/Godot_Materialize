@@ -10,7 +10,9 @@ class_name CollapseGroup
 ## panel.
 ##
 ## The panel authors the group's own children (see
-## `MapModules/heightMap/height_panel.tscn`). The contract is two children:
+## `MapModules/heightMap/height_panel.tscn`). The contract is three exports
+## assigned in the Inspector - the fold button, the header row, and the body -
+## so this script holds no node paths (`CODING_RULES.md`):
 ##
 ##   Header  HBoxContainer, first child `Fold` (the toggle button), then any
 ##           widgets that must stay reachable while the body is hidden. The
@@ -31,23 +33,31 @@ signal collapsed_changed(collapsed: bool)
 		collapsed = value
 		_apply()
 
+## The fold button, the header row, and the body that hides (assigned in the
+## Inspector).
+@export var fold_button: Button
+@export var header: Container
+@export var body: VBoxContainer
+
 ## The button labels. Godot's fallback font has `+` and `-` and no arrow
 ## glyphs, so the port uses the ASCII pair.
 const FOLD_LABEL := "+"
 const UNFOLD_LABEL := "-"
 
-var _fold: Button
-var _body: VBoxContainer
 ## Set while the button's `button_pressed` is being written from the fold state,
 ## so the resulting `toggled` signal does not loop back into the setter.
 var _syncing := false
 
 func _ready() -> void:
-	_fold = $Header/Fold
-	_body = $Body
-	_fold.toggle_mode = true
-	_fold.tooltip_text = "Fold / unfold these controls"
-	_fold.toggled.connect(_on_fold_toggled)
+	if fold_button == null:
+		push_error("CollapseGroup has no fold button assigned in the Inspector")
+		return
+	if body == null:
+		push_error("CollapseGroup has no body assigned in the Inspector")
+		return
+	fold_button.toggle_mode = true
+	fold_button.tooltip_text = "Fold / unfold these controls"
+	fold_button.toggled.connect(_on_fold_toggled)
 	_apply()
 
 ## Folds or unfolds the body. The Height panel calls this when "Use Color
@@ -62,11 +72,11 @@ func _on_fold_toggled(pressed: bool) -> void:
 	set_collapsed(not pressed)
 
 func _apply() -> void:
-	if _fold == null or _body == null:
+	if fold_button == null or body == null:
 		return
-	_body.visible = not collapsed
+	body.visible = not collapsed
 	_syncing = true
-	_fold.button_pressed = not collapsed
+	fold_button.button_pressed = not collapsed
 	_syncing = false
-	_fold.text = FOLD_LABEL if collapsed else UNFOLD_LABEL
+	fold_button.text = FOLD_LABEL if collapsed else UNFOLD_LABEL
 	collapsed_changed.emit(collapsed)
