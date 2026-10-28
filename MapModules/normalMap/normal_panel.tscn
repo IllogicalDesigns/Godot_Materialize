@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://MapModules/normalMap/normal_panel.gd" id="1_panel"]
 [ext_resource type="Script" uid="uid://bar2ytr42v43o" path="res://ui/fader_group.gd" id="2_fader"]
 
-[node name="NormalPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "weight_faders", "preset_default_button", "preset_smooth_button", "preset_crisp_button", "preset_mids_button", "pre_contrast_slider", "pre_contrast_label", "angular_intensity_slider", "angular_intensity_label", "angularity_slider", "angularity_label", "shape_recognition_slider", "shape_recognition_label", "light_rotation_slider", "light_rotation_label", "slope_blur_slider", "slope_blur_label", "shape_bias_slider", "shape_bias_label", "final_contrast_slider", "final_contrast_label", "use_diffuse_check", "set_button")]
+[node name="NormalPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "weight_faders", "preset_default_button", "preset_smooth_button", "preset_crisp_button", "preset_mids_button", "pre_contrast_slider", "pre_contrast_label", "angular_intensity_slider", "angular_intensity_label", "angularity_slider", "angularity_label", "shape_recognition_slider", "shape_recognition_label", "light_rotation_slider", "light_rotation_label", "slope_blur_slider", "slope_blur_label", "shape_bias_slider", "shape_bias_label", "final_contrast_slider", "final_contrast_label", "use_diffuse_check", "set_button", "reset_button")]
 custom_minimum_size = Vector2(340, 0)
 script = ExtResource("1_panel")
 reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
@@ -31,6 +31,7 @@ final_contrast_slider = NodePath("ScrollContainer/Column/FinalGroup/FinalContras
 final_contrast_label = NodePath("ScrollContainer/Column/FinalGroup/FinalContrastVal")
 use_diffuse_check = NodePath("ScrollContainer/Column/DiffuseCheck")
 set_button = NodePath("ScrollContainer/Column/SetButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -450,6 +451,11 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "5.00"
 horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
 
 [node name="SetButton" type="Button" parent="ScrollContainer/Column"]
 layout_mode = 2

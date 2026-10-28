@@ -34,6 +34,11 @@ func map_title() -> String:
 func settings() -> Dictionary:
 	return tool.settings
 
+## The Metallic panel's "Reset Parameters" button restores Unity's
+## `MetallicSettings` defaults.
+func default_settings() -> Dictionary:
+	return MetallicFromDiffuse.defaults()
+
 func panel_scene() -> PackedScene:
 	return load(PANEL_SCENE_PATH)
 

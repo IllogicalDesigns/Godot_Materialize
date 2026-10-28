@@ -58,6 +58,23 @@ func settings() -> Dictionary:
 	push_error("%s does not implement settings()" % name)
 	return {}
 
+## The settings the panel's "Reset Parameters" button restores: the generator's
+## `defaults()`. Each module overrides this with its own tool's defaults, e.g.
+## `RoughnessFromDiffuse.defaults()`.
+func default_settings() -> Dictionary:
+	push_error("%s does not implement default_settings()" % name)
+	return {}
+
+## Restores the settings Dictionary to defaults, edited in place so the panel
+## keeps the reference it edits. A fresh `defaults()` is written key by key:
+## nested Dictionaries, Arrays, Color and Vector2 values are the new objects
+## `defaults()` builds each call, so nothing is shared with the generator.
+func reset_settings() -> void:
+	var fresh: Dictionary = default_settings()
+	var current: Dictionary = settings()
+	for key: String in fresh:
+		current[key] = fresh[key]
+
 ## The panel scene that slots into `MapOptionsPanel` while this map is active.
 func panel_scene() -> PackedScene:
 	push_error("%s does not implement panel_scene()" % name)

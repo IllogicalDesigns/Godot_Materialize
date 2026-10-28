@@ -40,6 +40,11 @@ func map_title() -> String:
 func settings() -> Dictionary:
 	return tool.settings
 
+## The Roughness panel's "Reset Parameters" button restores Unity's
+## `SmoothnessSettings` defaults.
+func default_settings() -> Dictionary:
+	return RoughnessFromDiffuse.defaults()
+
 func panel_scene() -> PackedScene:
 	return load(PANEL_SCENE_PATH)
 

@@ -8,6 +8,7 @@ class_name AOPanel
 ##   "Blend Normal AO and Depth AO"           0..1, 1 (0 without a height map)
 ##   "AO Power"                               0.1..10, 1
 ##   "AO Bias"                                -1..1, 0
+##   "Reset Parameters"                       restore every setting
 ##   "Set as AO Map"
 ##
 ## The widgets are authored in `MapModules/aoMap/ao_panel.tscn`; every widget
@@ -28,6 +29,10 @@ class_name AOPanel
 
 signal settings_changed()
 signal apply_requested()
+## "Reset Parameters" asks the shell to restore this map's settings Dictionary
+## to its defaults. The panel owns no settings knowledge here: the shell resets
+## the Dictionary, refreshes the widgets, and regenerates.
+signal reset_requested()
 
 ## The slider pairs, in Materialize's window order.
 @export var spread_slider: Slider
@@ -43,6 +48,9 @@ signal apply_requested()
 
 ## "Set as AO Map".
 @export var set_button: Button
+
+## "Reset Parameters", the row above the Set button.
+@export var reset_button: Button
 
 var _settings: Dictionary = {}
 ## Set while widgets are being re-synced from settings, so writing a value back
@@ -78,6 +86,7 @@ func _ready() -> void:
 	for row: Array in _slider_rows():
 		row[0].value_changed.connect(_on_slider_changed.bind(row))
 	set_button.pressed.connect(_on_set_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 
 ## Rows: [slider, value label, settings key], built from the exports, in
 ## Materialize's window order.
@@ -104,6 +113,11 @@ func _on_set_pressed() -> void:
 		return
 	apply_requested.emit()
 
+func _on_reset_pressed() -> void:
+	if _settings.is_empty():
+		return
+	reset_requested.emit()
+
 ## Reports exports that were never assigned in the Inspector, so a missing
 ## widget shows up as an error at load instead of a null crash mid-edit.
 func _check_exports() -> void:
@@ -114,3 +128,5 @@ func _check_exports() -> void:
 			push_error("AOPanel value label %s is not assigned in the Inspector" % row[2])
 	if set_button == null:
 		push_error("AOPanel has no Set button assigned in the Inspector")
+	if reset_button == null:
+		push_error("AOPanel has no Reset button assigned in the Inspector")

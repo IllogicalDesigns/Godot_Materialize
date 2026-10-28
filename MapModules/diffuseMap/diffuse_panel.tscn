@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d3pnlgd8x2v4k" path="res://MapModules/diffuseMap/diffuse_panel.gd" id="1"]
 
-[node name="DiffusePanel" type="VBoxContainer" unique_id=1760300878 node_paths=PackedStringArray("reveal_slider", "reveal_label", "avg_blur_slider", "avg_blur_label", "overlay_blur_slider", "overlay_blur_label", "overlay_contrast_slider", "overlay_contrast_label", "light_power_slider", "light_power_label", "remove_light_slider", "remove_light_label", "shadow_power_slider", "shadow_power_label", "remove_shadow_slider", "remove_shadow_label", "hot_spot_slider", "hot_spot_label", "dark_spot_slider", "dark_spot_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "keep_color_slider", "keep_color_label", "saturation_slider", "saturation_label", "apply_button")]
+[node name="DiffusePanel" type="VBoxContainer" unique_id=1760300878 node_paths=PackedStringArray("reveal_slider", "reveal_label", "avg_blur_slider", "avg_blur_label", "overlay_blur_slider", "overlay_blur_label", "overlay_contrast_slider", "overlay_contrast_label", "light_power_slider", "light_power_label", "remove_light_slider", "remove_light_label", "shadow_power_slider", "shadow_power_label", "remove_shadow_slider", "remove_shadow_label", "hot_spot_slider", "hot_spot_label", "dark_spot_slider", "dark_spot_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "keep_color_slider", "keep_color_label", "saturation_slider", "saturation_label", "apply_button", "reset_button")]
 script = ExtResource("1")
 reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
 reveal_label = NodePath("ScrollContainer/Column/RevealGroup/RevealVal")
@@ -33,6 +33,7 @@ keep_color_label = NodePath("ScrollContainer/Column/KeepColorGroup/KeepColorVal"
 saturation_slider = NodePath("ScrollContainer/Column/SaturationGroup/Saturation")
 saturation_label = NodePath("ScrollContainer/Column/SaturationGroup/SaturationVal")
 apply_button = NodePath("ScrollContainer/Column/ApplyButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1336201865]
 custom_minimum_size = Vector2(500, 500)
@@ -347,6 +348,11 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "1.00"
 horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column" unique_id=1196282591]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
 
 [node name="ApplyButton" type="Button" parent="ScrollContainer/Column" unique_id=692911567]
 layout_mode = 2

@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dr30dm740tov0" path="res://ui/collapse_group.gd" id="2_collapse"]
 [ext_resource type="Script" uid="uid://bar2ytr42v43o" path="res://ui/fader_group.gd" id="3_fader"]
 
-[node name="HeightPanel" type="VBoxContainer" unique_id=910687507 node_paths=PackedStringArray("reveal_slider", "reveal_label", "weight_faders", "contrast_faders", "sample1_faders", "sample2_faders", "weight_default_button", "weight_details_button", "weight_displace_button", "contrast_default_button", "contrast_cracks_button", "contrast_funky_button", "blend_slider", "blend_label", "gain_slider", "gain_label", "final_contrast_slider", "final_contrast_label", "final_bias_slider", "final_bias_label", "use_diffuse_check", "use_original_check", "use_normal_check", "use1_check", "isolate1_check", "use2_check", "isolate2_check", "color1_picker", "color2_picker", "pick1_button", "pick2_button", "sample1_fold", "sample2_fold", "set_button")]
+[node name="HeightPanel" type="VBoxContainer" unique_id=910687507 node_paths=PackedStringArray("reveal_slider", "reveal_label", "weight_faders", "contrast_faders", "sample1_faders", "sample2_faders", "weight_default_button", "weight_details_button", "weight_displace_button", "contrast_default_button", "contrast_cracks_button", "contrast_funky_button", "blend_slider", "blend_label", "gain_slider", "gain_label", "final_contrast_slider", "final_contrast_label", "final_bias_slider", "final_bias_label", "use_diffuse_check", "use_original_check", "use_normal_check", "use1_check", "isolate1_check", "use2_check", "isolate2_check", "color1_picker", "color2_picker", "pick1_button", "pick2_button", "sample1_fold", "sample2_fold", "set_button", "reset_button")]
 custom_minimum_size = Vector2(340, 0)
 script = ExtResource("1_panel")
 reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
@@ -41,6 +41,7 @@ pick2_button = NodePath("ScrollContainer/Column/Sample2Group/Body/Row/Left/Pick2
 sample1_fold = NodePath("ScrollContainer/Column/Sample1Group")
 sample2_fold = NodePath("ScrollContainer/Column/Sample2Group")
 set_button = NodePath("ScrollContainer/Column/SetButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
 
 [node name="Title" type="Label" parent="." unique_id=1913368589]
 layout_mode = 2
@@ -971,6 +972,11 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column" unique_id=1294529433]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
 
 [node name="SetButton" type="Button" parent="ScrollContainer/Column" unique_id=631161072]
 layout_mode = 2

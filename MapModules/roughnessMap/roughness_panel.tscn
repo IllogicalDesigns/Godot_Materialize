@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://ui/collapse_group.gd" id="2_collapse"]
 [ext_resource type="Script" path="res://ui/fader_group.gd" id="3_fader"]
 
-[node name="RoughnessPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "use_edited_check", "use_original_check", "metal_roughness_slider", "metal_roughness_label", "base_roughness_slider", "base_roughness_label", "use1_check", "isolate1_check", "use2_check", "isolate2_check", "color1_picker", "color2_picker", "pick1_button", "pick2_button", "sample1_faders", "sample2_faders", "sample1_fold", "sample2_fold", "blur_size_slider", "blur_size_label", "overlay_blur_slider", "overlay_blur_label", "high_pass_slider", "high_pass_label", "final_contrast_slider", "final_contrast_label", "final_bias_slider", "final_bias_label", "set_button")]
+[node name="RoughnessPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "use_edited_check", "use_original_check", "metal_roughness_slider", "metal_roughness_label", "base_roughness_slider", "base_roughness_label", "use1_check", "isolate1_check", "use2_check", "isolate2_check", "color1_picker", "color2_picker", "pick1_button", "pick2_button", "sample1_faders", "sample2_faders", "sample1_fold", "sample2_fold", "blur_size_slider", "blur_size_label", "overlay_blur_slider", "overlay_blur_label", "high_pass_slider", "high_pass_label", "final_contrast_slider", "final_contrast_label", "final_bias_slider", "final_bias_label", "set_button", "reset_button")]
 custom_minimum_size = Vector2(340, 0)
 script = ExtResource("1_panel")
 reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
@@ -38,6 +38,7 @@ final_contrast_label = NodePath("ScrollContainer/Column/FinalGroup/ContrastVal")
 final_bias_slider = NodePath("ScrollContainer/Column/FinalGroup/Bias")
 final_bias_label = NodePath("ScrollContainer/Column/FinalGroup/BiasVal")
 set_button = NodePath("ScrollContainer/Column/SetButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -628,6 +629,11 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
 
 [node name="SetButton" type="Button" parent="ScrollContainer/Column"]
 layout_mode = 2

@@ -17,6 +17,7 @@ class_name RoughnessPanel
 ##   "High Pass Overlay"                             -10..10, 3
 ##   "Final Contrast"                                -2..2, 1
 ##   "Final Bias"                                    -0.5..0.5, 0
+##   "Reset Parameters"                              restore every setting
 ##   "Set as Roughness"
 ##
 ## The widgets are authored in `MapModules/roughnessMap/roughness_panel.tscn`;
@@ -55,6 +56,10 @@ class_name RoughnessPanel
 signal settings_changed()
 signal preview_changed()
 signal apply_requested()
+## "Reset Parameters" asks the shell to restore this map's settings Dictionary
+## to its defaults. The panel owns no settings knowledge here: the shell resets
+## the Dictionary, refreshes the widgets, and regenerates.
+signal reset_requested()
 ## The shell samples a colour from the Diffuse preview and writes it back with
 ## `set_sample_color`, the same flow the Height panel's colour samples use.
 signal color_pick_requested(sample_index: int)
@@ -108,6 +113,9 @@ signal color_pick_requested(sample_index: int)
 
 ## "Set as Roughness".
 @export var set_button: Button
+
+## "Reset Parameters", the row above the Set button.
+@export var reset_button: Button
 
 ## The fader keys, in the order Materialize draws them inside a sample
 ## (`SmoothnessGui.cs` lines 495-511, 537-553): Hue, Sat, Lum, Low, High,
@@ -171,6 +179,7 @@ func _ready() -> void:
 	for row: Array in _pick_rows():
 		row[0].pressed.connect(_on_pick_pressed.bind(row))
 	set_button.pressed.connect(_on_set_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 
 ## Rows: [fader group, value label, settings path], built from the exports.
 ## Unity draws the six faders in one row next to the swatch, in Hue / Sat / Lum
@@ -335,6 +344,11 @@ func _on_set_pressed() -> void:
 		return
 	apply_requested.emit()
 
+func _on_reset_pressed() -> void:
+	if _settings.is_empty():
+		return
+	reset_requested.emit()
+
 ## Reads a settings value at a path, e.g. ["sample_color1"] or ["mask_low1"].
 ## The node is Variant, not Dictionary, because a settings path can end at an
 ## Array element.
@@ -377,3 +391,5 @@ func _check_exports() -> void:
 			push_error("RoughnessPanel isolate checkbox %s is not assigned in the Inspector" % fold[0])
 	if set_button == null:
 		push_error("RoughnessPanel has no Set button assigned in the Inspector")
+	if reset_button == null:
+		push_error("RoughnessPanel has no Reset button assigned in the Inspector")

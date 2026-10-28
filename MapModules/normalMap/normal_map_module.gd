@@ -36,6 +36,11 @@ func map_title() -> String:
 func settings() -> Dictionary:
 	return tool.settings
 
+## The Normal panel's "Reset Parameters" button restores Unity's
+## `NormalFromHeightSettings` defaults.
+func default_settings() -> Dictionary:
+	return NormalFromHeight.defaults()
+
 func panel_scene() -> PackedScene:
 	return load(PANEL_SCENE_PATH)
 

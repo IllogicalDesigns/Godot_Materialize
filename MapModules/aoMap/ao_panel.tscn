@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://MapModules/aoMap/ao_panel.gd" id="1_panel"]
 
-[node name="AOPanel" type="VBoxContainer" node_paths=PackedStringArray("spread_slider", "spread_label", "depth_slider", "depth_label", "blend_slider", "blend_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "set_button")]
+[node name="AOPanel" type="VBoxContainer" node_paths=PackedStringArray("spread_slider", "spread_label", "depth_slider", "depth_label", "blend_slider", "blend_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "set_button", "reset_button")]
 custom_minimum_size = Vector2(340, 0)
 script = ExtResource("1_panel")
 spread_slider = NodePath("ScrollContainer/Column/SpreadGroup/Spread")
@@ -16,6 +16,7 @@ contrast_label = NodePath("ScrollContainer/Column/ContrastGroup/ContrastVal")
 bias_slider = NodePath("ScrollContainer/Column/BiasGroup/Bias")
 bias_label = NodePath("ScrollContainer/Column/BiasGroup/BiasVal")
 set_button = NodePath("ScrollContainer/Column/SetButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -146,6 +147,11 @@ custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
 text = "0.00"
 horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
 
 [node name="SetButton" type="Button" parent="ScrollContainer/Column"]
 layout_mode = 2

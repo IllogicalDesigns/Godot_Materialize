@@ -17,6 +17,7 @@ class_name HeightPanel
 ##   "Color Sample 2" fold group:   the same block
 ##   "Sample Blend"
 ##   "Final Gain" (-0.5..0.5) "Final Contrast" (-10..10) "Final Bias" (-1..1)
+##   "Reset Parameters"
 ##   "Set as Height Map"
 ##
 ## The widgets are authored in `MapModules/heightMap/height_panel.tscn`; every
@@ -43,6 +44,10 @@ class_name HeightPanel
 signal settings_changed()
 signal preview_changed()
 signal apply_requested()
+## "Reset Parameters" asks the shell to restore this map's settings Dictionary
+## to its defaults. The panel owns no settings knowledge here: the shell resets
+## the Dictionary, refreshes the widgets, and regenerates.
+signal reset_requested()
 signal color_pick_requested(sample_index: int)
 
 ## The Reveal pair: the preview slider and its value label.
@@ -98,6 +103,9 @@ signal color_pick_requested(sample_index: int)
 
 ## "Set as Height Map".
 @export var set_button: Button
+
+## "Reset Parameters", the row above the Set button.
+@export var reset_button: Button
 
 ## The fader keys, in the order Materialize draws them inside a sample.
 const SAMPLE_KEYS := ["hue", "sat", "lum", "mask_low", "mask_high", "height"]
@@ -155,6 +163,7 @@ func _ready() -> void:
 	for row: Array in _preset_rows():
 		row[0].pressed.connect(_on_preset_pressed.bind(row))
 	set_button.pressed.connect(_on_set_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 
 ## Rows: [fader group, value label, settings path], built from the exports. The
 ## weight and contrast faders store the coarse-to-fine scene order in the
@@ -338,6 +347,11 @@ func _on_set_pressed() -> void:
 		return
 	apply_requested.emit()
 
+func _on_reset_pressed() -> void:
+	if _settings.is_empty():
+		return
+	reset_requested.emit()
+
 func _on_preset_pressed(row: Array) -> void:
 	if _settings.is_empty():
 		return
@@ -392,3 +406,5 @@ func _check_exports() -> void:
 			push_error("HeightPanel fold group %s is not assigned in the Inspector" % fold[0])
 	if set_button == null:
 		push_error("HeightPanel has no Set button assigned in the Inspector")
+	if reset_button == null:
+		push_error("HeightPanel has no Reset button assigned in the Inspector")

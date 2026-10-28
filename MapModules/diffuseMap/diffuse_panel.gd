@@ -14,6 +14,10 @@ extends VBoxContainer
 signal settings_changed()
 signal preview_changed()
 signal apply_requested()
+## "Reset Parameters" asks the shell to restore this map's settings Dictionary
+## to its defaults. The panel owns no settings knowledge here: the shell resets
+## the Dictionary, refreshes the widgets, and regenerates.
+signal reset_requested()
 ## Declared for the shell's uniform wiring (`main.gd` connects it for every
 ## panel). The Diffuse window has no colour picker, so nothing emits it.
 signal color_pick_requested()
@@ -55,6 +59,9 @@ signal color_pick_requested()
 ## "Set as Diffuse".
 @export var apply_button: Button
 
+## "Reset Parameters", the row above the Apply button.
+@export var reset_button: Button
+
 var _settings: Dictionary = {}
 ## Set while widgets are being re-synced from settings, so writing a value back
 ## into the settings Dictionary does not trigger another generation.
@@ -94,6 +101,7 @@ func _ready() -> void:
 		# commits on mouse release.
 		row[0].drag_ended.connect(_on_slider_released.bind(row))
 	apply_button.pressed.connect(_on_apply_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 
 ## Rows: [slider, settings key, value label, is_reveal], built from the exports.
 func _slider_rows() -> Array:
@@ -139,6 +147,11 @@ func _on_slider_released(_value: float, row: Array) -> void:
 func _on_apply_pressed() -> void:
 	apply_requested.emit()
 
+func _on_reset_pressed() -> void:
+	if _settings.is_empty():
+		return
+	reset_requested.emit()
+
 ## Reports exports that were never assigned in the Inspector, so a missing
 ## widget shows up as an error at load instead of a null crash mid-edit.
 func _check_exports() -> void:
@@ -149,3 +162,5 @@ func _check_exports() -> void:
 			push_error("DiffusePanel value label %s is not assigned in the Inspector" % row[1])
 	if apply_button == null:
 		push_error("DiffusePanel has no Apply button assigned in the Inspector")
+	if reset_button == null:
+		push_error("DiffusePanel has no Reset button assigned in the Inspector")

@@ -12,6 +12,7 @@ class_name MetallicPanel
 ##   "High Pass Overlay"                              -10..10, 1
 ##   "Final Contrast"                                 -2..2, 1
 ##   "Final Bias"                                     -0.5..0.5, 0
+##   "Reset Parameters"                               restore every setting
 ##   "Set as Metallic"
 ##
 ## The widgets are authored in `MapModules/metallicMap/metallic_panel.tscn`; every
@@ -36,6 +37,10 @@ class_name MetallicPanel
 signal settings_changed()
 signal preview_changed()
 signal apply_requested()
+## "Reset Parameters" asks the shell to restore this map's settings Dictionary
+## to its defaults. The panel owns no settings knowledge here: the shell resets
+## the Dictionary, refreshes the widgets, and regenerates.
+signal reset_requested()
 ## The shell samples a colour from the Diffuse preview and writes it back with
 ## `set_sample_color`, the same flow the Height panel's colour samples use.
 signal color_pick_requested(sample_index: int)
@@ -71,6 +76,9 @@ signal color_pick_requested(sample_index: int)
 
 ## "Set as Metallic".
 @export var set_button: Button
+
+## "Reset Parameters", the row above the Set button.
+@export var reset_button: Button
 
 ## The fader keys, in the order Materialize draws them (`MetallicGui.cs` lines
 ## 310-323): Hue, Sat, Lum, Low, High.
@@ -128,6 +136,7 @@ func _ready() -> void:
 		row[0].color_changed.connect(_on_color_changed.bind(row))
 	pick_color_button.pressed.connect(_on_pick_pressed)
 	set_button.pressed.connect(_on_set_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 
 ## Rows: [fader group, value label, settings path], built from the exports.
 ## Unity draws the faders in one row next to the swatch, in Hue / Sat / Lum /
@@ -229,6 +238,11 @@ func _on_set_pressed() -> void:
 		return
 	apply_requested.emit()
 
+func _on_reset_pressed() -> void:
+	if _settings.is_empty():
+		return
+	reset_requested.emit()
+
 ## Reads a settings value at a path, e.g. ["metal_color"] or ["mask_low"].
 ## The node is Variant, not Dictionary, because a settings path can end at an
 ## Array element.
@@ -267,3 +281,5 @@ func _check_exports() -> void:
 		push_error("MetallicPanel has no Pick Color button assigned in the Inspector")
 	if set_button == null:
 		push_error("MetallicPanel has no Set button assigned in the Inspector")
+	if reset_button == null:
+		push_error("MetallicPanel has no Reset button assigned in the Inspector")

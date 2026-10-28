@@ -31,6 +31,11 @@ func map_title() -> String:
 func settings() -> Dictionary:
 	return tool.settings
 
+## The Height panel's "Reset Parameters" button restores Unity's
+## `HeightFromDiffuseSettings` defaults.
+func default_settings() -> Dictionary:
+	return HeightFromDiffuse.defaults()
+
 func panel_scene() -> PackedScene:
 	return load(PANEL_SCENE_PATH)
 

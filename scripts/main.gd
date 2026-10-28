@@ -296,6 +296,10 @@ func _activate(module: MapModule) -> void:
 			panel.connect("color_pick_requested", _on_pick_requested)
 		if panel.has_signal("preview_changed"):
 			panel.connect("preview_changed", _on_preview_changed)
+		# "Reset Parameters" is part of the panel contract on every map, guarded
+		# the same way as the optional signals so a panel without it is fine.
+		if panel.has_signal("reset_requested"):
+			panel.connect("reset_requested", _on_reset_requested)
 
 	# The panels are cached in `_panels` and reused, so the outgoing panel is
 	# parked hidden in `_panel_park` and never freed. Freeing the slot's child
@@ -478,6 +482,20 @@ func _set_reveal() -> void:
 func _on_apply_requested() -> void:
 	_dirty = false
 	_generate()
+
+## "Reset Parameters": the active panel asks for its map's defaults. The module
+## restores the settings Dictionary in place, so the panel keeps the reference
+## it edits; the panel pushes the restored values back into the widgets, the
+## reveal seam follows the default, and the map regenerates with them.
+func _on_reset_requested() -> void:
+	if _active == null:
+		return
+	_active.reset_settings()
+	var panel: Control = _panels[_active.map_type()]
+	panel.call("refresh")
+	_set_reveal()
+	_generate()
+	_set_status("Reset %s parameters to defaults." % _active.map_title())
 
 func _on_box_button(action: String, map_type: String) -> void:
 	var module: MapModule = modules.get(map_type)
