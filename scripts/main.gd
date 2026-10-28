@@ -32,6 +32,22 @@ extends Node3D
 ## row, the saving options box, the 3D preview filling the rest of the window,
 ## and the view-button row under the boxes. Buttons that depend on unported
 ## tools report themselves in the status label.
+##
+## The saving box exports: **Save all maps** writes every map as
+## `materialize_<map>.<ext>` into a chosen folder, and the port-only
+## **Save Material** button writes the same map files plus
+## `materialize_material.res`, a `StandardMaterial3D` built from the map store
+## with its slot textures embedded. Unity has no material file; its material
+## lives on the test object (`MainGui.cs` lines 283-335).
+##
+## The folder and file dialogs (`main.tscn`) are Godot's own `FileDialog`s with
+## ACCESS_FILESYSTEM access, so picks land on the real filesystem, not the
+## `user://` sandbox. The OS chooser is dead on this system: Godot's portal
+## response match rule carries `destination=`, and the bus daemon strips that
+## header when forwarding a directed signal, so the match never fires and no
+## pick ever arrives — the control is in `tools/portal_destination_test/`.
+## `tests/save_dialog_probe.tscn` drives the dialog's real ok-button press end
+## to end against the running shell.
 
 const UNITY_SOURCE := "/home/tiny/AI/materialize/Materialize"
 
@@ -94,6 +110,9 @@ const MAP_BOXES: Array[Dictionary] = [
 @export var _generate_button: Button
 @export var _save_map_button: Button
 @export var _save_all_button: Button
+## The Save panel's "Save Material" button: every map as a file plus the Godot
+## material that uses them, written into one folder.
+@export var _save_material_button: Button
 @export var _save_format: OptionButton
 @export var _show_full_material_button: Button
 @export var _next_cube_map_button: Button
@@ -130,6 +149,9 @@ var _working_size := 1024
 var _source_original: Image
 var _save_type: String = ""
 var _load_type: String = ""
+## Which the `SaveAllDialog`'s chosen folder is for: maps only, or the material
+## export, so one folder picker serves both Save panel buttons.
+var _save_material := false
 
 ## The 3D preview material (`shaders/mesh_preview.gdshader`): `map` is the
 ## previewed map, `reveal` is the Height Reveal Slider.
@@ -138,6 +160,15 @@ const MESH_SHADER_PATH := "res://shaders/mesh_preview.gdshader"
 ## The mesh map key "Show full Material" installs. It is not a map in the map
 ## store, so `_set_mesh_map` puts the full material on the mesh for this key.
 const FULL_MESH_MAP := "full"
+
+## The material file the "Save Material" button writes beside the maps. The slot
+## textures are embedded in it, so the export folder is self-contained and
+## `ResourceLoader.load(".../materialize_material.res")` reads the material back
+## with its textures. Text `.tres` is no use here: the embedded 8-bit maps
+## serialize as one decimal per byte, so a 1024² map becomes a ~50 MB text file,
+## and a `.tres` in a folder outside the project cannot reference the PNGs by
+## path (`res://` is project-relative).
+const MATERIAL_FILE := "materialize_material.res"
 
 var _mesh_material: ShaderMaterial
 ## Flat grey texture used when a map is cleared, so the mesh does not go black.
@@ -220,10 +251,14 @@ func _wire_ui() -> void:
 	_save_map_button.pressed.connect(_on_save_pressed)
 
 	_save_all_button.pressed.connect(_on_save_all_pressed)
+	_save_material_button.pressed.connect(_on_save_material_pressed)
 
 	_load_dialog.file_selected.connect(_on_load_file_selected)
 	_save_dialog.file_selected.connect(_on_save_file_selected)
 	_save_all_dialog.dir_selected.connect(_on_save_all_dir_selected)
+	_load_dialog.canceled.connect(_on_dialog_cancelled.bind("LoadDialog"))
+	_save_dialog.canceled.connect(_on_dialog_cancelled.bind("SaveDialog"))
+	_save_all_dialog.canceled.connect(_on_dialog_cancelled.bind("SaveAllDialog"))
 	_debounce.timeout.connect(_on_debounce_timeout)
 
 	_show_full_material_button.pressed.connect(_on_show_full_material_pressed)
@@ -692,16 +727,42 @@ func _on_save_file_selected(path: String) -> void:
 ## Save all maps: the format comes from the Save panel, and each map is written
 ## as `materialize_<map>` with Materialize's suffix, e.g. `materialize_height.png`.
 func _on_save_all_pressed() -> void:
-	var empty := true
-	for map_type: String in maps:
-		if maps[map_type] != null:
-			empty = false
-	if empty:
+	_save_material = false
+	if not _has_map():
 		_set_status("No maps to save.")
 		return
+	_save_all_dialog.title = "Save Maps Folder"
 	_save_all_dialog.show()
 
+## Save Material: the same folder picker, and the folder gets every map file
+## plus the Godot material built from them. Unity exports the maps and keeps the
+## material in the test object's Standard shader (`MainGui.cs` lines 283-335);
+## the port writes the material out as a file, so the folder is the deliverable.
+func _on_save_material_pressed() -> void:
+	_save_material = true
+	if not _has_map():
+		_set_status("No maps to save.")
+		return
+	_save_all_dialog.title = "Save Material Folder"
+	_save_all_dialog.show()
+
+## Whether any map in the store has content. `diffuse_original` is the pristine
+## source, not a map, so it does not count on its own.
+func _has_map() -> bool:
+	for row in MAP_BOXES:
+		if maps.get(row["type"]) != null:
+			return true
+	return false
+
+## Debug: the dialog was opened and cancelled, so no pick reaches the save
+## handlers. `dir_selected` prints the picked path the same way, so the pair of
+## prints says whether a dialog answered the shell at all.
+func _on_dialog_cancelled(who: String) -> void:
+	print("[materialize] ", who, " canceled: the dialog returned no pick")
+
 func _on_save_all_dir_selected(path: String) -> void:
+	print("[materialize] dir_selected: '", path, "' as ",
+			"material" if _save_material else "maps only")
 	var format_id := _save_format.get_selected_id()
 	var extension: String = ["bmp", "jpg", "png", "tga", "tiff"][format_id]
 	# Godot writes PNG, JPG and WebP. BMP, TGA and TIFF need a custom writer
@@ -712,9 +773,26 @@ func _on_save_all_dir_selected(path: String) -> void:
 
 	var error := DirAccess.make_dir_recursive_absolute(path)
 	if error != OK:
+		print("[materialize] dir creation failed: ", error_string(error))
 		_set_status("Could not create %s (%s)" % [path, error_string(error)])
 		return
 
+	if _save_material:
+		_save_material = false
+		_save_material_into(path, extension)
+		return
+
+	var written := _write_maps(path, extension)
+	if written >= 0:
+		print("[materialize] wrote ", written, " maps into ", path)
+		_set_status("Saved %d maps into %s" % [written, path])
+
+## Writes every map into `path` as `materialize_<map>.<extension>`, with
+## Materialize's suffix naming. Returns the number of maps written, or -1 when a
+## write failed (the status line names the file). Shared by both Save panel
+## buttons, so the folder layout is the same for a maps-only and a material
+## export.
+func _write_maps(path: String, extension: String) -> int:
 	var written := 0
 	for row in MAP_BOXES:
 		var map_type: String = row["type"]
@@ -723,15 +801,71 @@ func _on_save_all_dir_selected(path: String) -> void:
 			continue
 		var display := Blit.to_display(image)
 		var file := "%s/%s_%s.%s" % [path, "materialize", map_type, extension]
+		var error := OK
 		if extension == "jpg":
 			error = display.save_jpg(file)
 		else:
 			error = display.save_png(file)
 		if error != OK:
+			print("[materialize] map save failed: ", file, " ", error_string(error))
 			_set_status("Save failed: %s (%s)" % [file, error_string(error)])
-			return
+			return -1
+		print("[materialize] wrote ", file)
 		written += 1
-	_set_status("Saved %d maps into %s" % [written, path])
+	return written
+
+## The material export: the map files, then `materialize_material.res`, the
+## `StandardMaterial3D` filled from the map store, so the folder is the
+## deliverable.
+func _save_material_into(path: String, extension: String) -> void:
+	var written := _write_maps(path, extension)
+	if written < 0:
+		return
+	var material := _build_export_material()
+	var file := "%s/%s" % [path, MATERIAL_FILE]
+	var error := ResourceSaver.save(material, file)
+	if error != OK:
+		print("[materialize] material save failed: ", file, " ", error_string(error))
+		_set_status("Save failed: %s (%s)" % [file, error_string(error)])
+		return
+	print("[materialize] wrote ", written, " maps + ", file)
+	_set_status("Saved %d maps and the material into %s (%s)" % [written, path, MATERIAL_FILE])
+
+## The exported material, the same slots "Show full Material" fills on the mesh
+## (`_fill_full_material`), built fresh so the export file is not the preview's
+## material. Each slot reads its map's red channel, which is where the generators
+## write their single-channel values, and the shading controls ride at 1.0, so
+## the map drives the slot on its own: an exported material does shading, not the
+## preview's 0.6. Empty slots are left empty, and the AO, Normal and Heightmap
+## features switch with their maps, the way Materialize's test object material
+## carries only the maps it has (`MainGui.cs` lines 283-335).
+func _build_export_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.resource_name = "Materialize export"
+	material.albedo_color = Color(1, 1, 1, 1)
+	material.albedo_texture = _display_texture(maps.get("diffuse"))
+	var normal_map: Image = maps.get("normal")
+	material.normal_enabled = normal_map != null
+	material.normal_texture = _display_texture(normal_map)
+	var height_map: Image = maps.get("height")
+	material.heightmap_enabled = height_map != null
+	material.heightmap_texture = _display_texture(height_map)
+	# The heightmap scale is Materialize's Height Reveal Slider default, 0.5
+	# (`GuiHelper.cs` vertical slider, the same value the preview scene uses).
+	material.heightmap_scale = 0.5
+	var roughness_map: Image = maps.get("roughness")
+	material.roughness_texture = _display_texture(roughness_map)
+	material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	material.roughness = 1.0
+	var metallic_map: Image = maps.get("metallic")
+	material.metallic_texture = _display_texture(metallic_map)
+	material.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	material.metallic = 1.0 if metallic_map != null else 0.0
+	var ao_map: Image = maps.get("ao")
+	material.ao_enabled = ao_map != null
+	material.ao_texture = _display_texture(ao_map)
+	material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	return material
 
 func _on_show_full_material_pressed() -> void:
 	# Materialize's ShowFullMaterial closes the tool windows and puts the full
@@ -798,6 +932,7 @@ func _check_exports() -> void:
 			"_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce",
 			"_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button",
 			"_generate_button", "_save_map_button", "_save_all_button", "_save_format",
+			"_save_material_button",
 			"_show_full_material_button", "_next_cube_map_button", "_tile_maps_button",
 			"_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button",
 			"_make_suggestion_button", "_hide_gui_button"]:

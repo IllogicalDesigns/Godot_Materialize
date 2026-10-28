@@ -84,7 +84,7 @@ shaders/mesh_preview.gdshader         the 3D preview material (map + Height Reve
 ui/map_box.gd + scenes/map_panel.tscn the map box (preview, P C O S, Quick Save, Preview, Create, Clear)
 ui/collapse_group.gd                  foldable container (header row + foldable body), used by the Height panel's colour samples
 scenes/main.tscn + scripts/main.gd    the app shell: box row, panel slot, mesh, dialogs, toolbar, roadmap
-scenes/save_panel.tscn                the saving box (file format + Save all maps!)
+scenes/save_panel.tscn                the saving box (file format + Save all maps! + Save Material)
 tests/                                blit probe, end-to-end height + diffuse tests, CPU references
                                       (height, diffuse, normal, metallic, roughness), live
                                       preview checks (height, diffuse, normal, roughness),
@@ -144,6 +144,35 @@ spread 50 → 0.627, 100 → 0.708, 10 → 0.671; blend off gives 0.876 / 0.885 
 0.707, so the AO.x curve sits at 0.876 on the flat plate and the mean rises
 with blend off.
 
+The sixth GPU run passed for the material export: `tests/material_live.tscn`
+drives **Save Material** through the shell — the six maps land in the folder as
+`materialize_<map>.png` (TGA falls back to PNG, no `.tga` written), and
+`materialize_material.res` loads back as a `StandardMaterial3D` with every slot
+carrying its map: albedo mean 0.410 vs diffuse 0.412, normal slot mean blue
+0.984 / tilt 0.105, heightmap center red 0.459 vs 0.460, roughness slot 0.310
+vs 0.312, metallic slot 0.968 vs 0.969, AO slot 0.815 vs 0.817, all slots at
+512² reading the red channel, `heightmap_scale` 0.5, roughness and metallic base
+1.0, features on. After Clear all the partial export keeps the source in Albedo,
+empties every other slot, switches the AO and Normal features off, and writes no
+file for a cleared map; Save all maps writes the maps and no material file —
+all PASS.
+
+The save dialogs are Godot's own `FileDialog`s with ACCESS_FILESYSTEM access, so
+Save Material, Save all maps! and Save Map pick real folders and files on the
+real filesystem, not the `user://` sandbox. The folder dialog is in Open Folder
+mode (`file_mode = 2`), which is what makes `dir_selected` fire: the `mode` key
+the dialogs used set `Window.mode` (minimized/fullscreen), a stale artifact of
+the port, and the file mode stayed the default Save, so no folder pick was ever
+emitted. The OS chooser is dead on this system: Godot's portal response match
+rule carries `destination=`, and the bus daemon strips that header when
+forwarding a directed signal, so the match never fires and no pick ever reaches
+the shell. `tools/portal_destination_test/` is the control that shows it — with
+the filter the directed signal is missed, without it the identical directed
+signal is received. `tests/save_dialog_probe.tscn` drives all three save dialogs
+end to end: it presses each dialog's real ok button, and the picked folder gets
+the maps and `materialize_material.res`, Save Map writes its single PNG, and Load
+picks a file from the dialog's own list.
+
 The app: load a diffuse image (PNG/JPG) or press **Stone Test Pattern**, pick a
 resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool regenerates
 live (debounced), the map box preview and the mesh update, and **Save Map** writes a
@@ -158,6 +187,14 @@ Quick Save writes `user://materialize<suffix>.png` (Materialize appends the map
 suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
 `maps["diffuse_original"]` (Unity's `_DiffuseMapOriginal`) beside the edited
 `maps["diffuse"]`.
+**Save Material** (the Save panel's second button) is the all-in-one export: the
+chosen folder gets every map as `materialize_<map>.png` plus
+`materialize_material.res`, a `StandardMaterial3D` built from the map store -
+Diffuse in Albedo, Normal, Heightmap (scale 0.5, Materialize's slider default),
+Roughness, Metallic and AO, each reading its map's red channel with the shading
+control at 1.0 so the map drives its slot. The slot textures are embedded in the
+file, so the folder is self-contained: `ResourceLoader.load(".../materialize_material.res")`
+reads the material back with its textures.
 
 ### Deviations from Materialize
 
@@ -210,6 +247,14 @@ suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
   the Diffuse one), so it never regenerates the map.
 - BMP/TGA/TIFF export fall back to PNG with a status note: Unity used
   `FreeImage.dll`, which has no Godot equivalent.
+- **Save Material** writes `materialize_material.res`, a binary
+  `StandardMaterial3D` with the slot textures embedded. Materialize has no
+  material file: its material lives on the test object's Standard shader
+  (`MainGui.cs` lines 283-335). A text `.tres` is not usable for an export
+  folder: embedded 8-bit maps serialize as one decimal per byte (a 1024² map is
+  a ~50 MB text file), and a `.tres` outside the project cannot reference the
+  exported PNGs, because `res://` is project-relative. The exported material is
+  built fresh, so the preview's 0.6 roughness never rides along in the file.
 - A toolbar row (Load Diffuse, Stone Test Pattern, Resolution, Generate, Save Map,
   status) is port-only: Materialize's window has no status line.
 - "Use Normal as input" swaps the sample controls for Spread/SpreadBoost in Unity;
@@ -241,9 +286,15 @@ assets/models/         <- preview meshes (the Unity FBX test objects, deferred)
 assets/textures/       <- stock maps (flat white / black / grey / normal, deferred)
 tests/                 <- framework probe + generator tests (height, diffuse, normal,
                        metallic, roughness, ao) + live preview checks (height, diffuse,
-                       normal, roughness, ao) + panel fold check + probes (HSL maths,
+                       normal, roughness, ao) + full material chain + Save Material export
+                       (map files + `materialize_material.res`, read back slot by slot) +
+                       panel fold check + probes (HSL maths,
                        StandardMaterial3D roughness slots, StandardMaterial3D AO slots,
-                       AO cone sweep)
+                       AO cone sweep, real-filesystem save dialogs)
+tools/portal_destination_test/ <- the destination-header control: small C programs
+                        showing the portal answers a pick (the request object
+                        vanishes on accept) and Godot's `destination=` response
+                        match rule never sees it
 ```
 
 Each map lives in its own `MapModules/<map>Map/` folder once ported; the roadmap
@@ -321,7 +372,11 @@ One tool per commit, in dependency order (later tools consume earlier outputs):
 8. Alignment
 9. Seamless Tiling
 10. Material preview (DNMST) + cubemap lighting + test meshes
-11. Export (file formats) + project save/load
+11. Export (file formats) + project save/load — the Save panel exports the maps
+    (PNG/JPG, BMP/TGA/TIFF fall back to PNG) and **Save Material** writes the
+    maps plus `materialize_material.res`, a `StandardMaterial3D` with the slot
+    textures embedded. Done. Project save/load (`SaveLoadProject.cs`) is the
+    remaining half.
 
 For each tool: read the Unity `.cs` GUI + `Blit_*.shader`, port the shader to
 `.gdshader`, port the GUI panel into `MapModules/<map>Map/`, wire the settings to
@@ -370,6 +425,8 @@ godot --headless --path . res://tests/panel_fold.tscn     # colour sample fold l
 godot --headless --path . res://tests/metallic_cpu.tscn   # CPU mirror of the Metallic blur + pass 2 thresholds, no GPU
 DISPLAY=:1 godot --path . res://tests/probe_hsl.tscn      # GPU rgb_to_hsl vs CPU rgb_to_hsl probe (the Metallic masks)
 DISPLAY=:1 godot --path . res://tests/full_live.tscn      # "Show full Material" chain: Albedo, Normal, Heightmap slots on one material
+DISPLAY=:1 godot --path . res://tests/material_live.tscn  # Save Material: every map file + `materialize_material.res`, read back and checked slot by slot
+DISPLAY=:1 godot --path . res://tests/save_dialog_probe.tscn  # save dialogs as Godot's own filesystem dialogs: folder mode, the ok press writes maps + material
 godot --headless --path . res://tests/roughness_cpu.tscn  # CPU mirror of the Roughness blur + smoothness pass, ~1 min at 512, no GPU
 DISPLAY=:1 godot --path . res://tests/roughness_live.tscn # live Roughness chain at 512, asserted against the CPU mirror
 godot --headless --path . res://tests/roughness_probe.tscn # StandardMaterial3D roughness slot probe, no GPU

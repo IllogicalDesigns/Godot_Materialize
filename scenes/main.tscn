@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://p6l6vseg3tmq"]
 
 [ext_resource type="PackedScene" path="res://scenes/map_panel.tscn" id="1_0wfyh"]
+[ext_resource type="Theme" uid="uid://cn4x0036icxdq" path="res://ui/materialize_theme.tres" id="2_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://cdxapiicdde1w" path="res://scenes/save_panel.tscn" id="2_sugp2"]
 [ext_resource type="Script" uid="uid://cttdhk31c1ie8" path="res://scripts/main.gd" id="3_main"]
 
@@ -26,7 +27,15 @@ glow_enabled = true
 [sub_resource type="BoxMesh" id="BoxMesh_616h8"]
 material = SubResource("StandardMaterial3D_616h8")
 
-[node name="MainNew" type="Node3D" unique_id=2127802715 node_paths=PackedStringArray("boxes", "_mesh", "_panel_slot", "_panel_park", "_status", "_resolution", "_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce", "_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button", "_generate_button", "_save_map_button", "_save_all_button", "_save_format", "_show_full_material_button", "_next_cube_map_button", "_tile_maps_button", "_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button", "_make_suggestion_button", "_hide_gui_button")]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
+albedo_color = Color(0.39308554, 0.3930855, 0.39308548, 1)
+metallic_specular = 0.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_616h8"]
+material = SubResource("StandardMaterial3D_jyhfs")
+size = Vector2(15, 15)
+
+[node name="MainNew" type="Node3D" unique_id=2127802715 node_paths=PackedStringArray("boxes", "_mesh", "_panel_slot", "_panel_park", "_status", "_resolution", "_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce", "_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button", "_generate_button", "_save_map_button", "_save_all_button", "_save_material_button", "_save_format", "_show_full_material_button", "_next_cube_map_button", "_tile_maps_button", "_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button", "_make_suggestion_button", "_hide_gui_button")]
 script = ExtResource("3_main")
 boxes = [NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel2"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel3"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel4"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel5"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel7")]
 _mesh = NodePath("MeshInstance3D")
@@ -46,6 +55,7 @@ _stone_pattern_button = NodePath("UI/MapsAnd3DFunctions/Toolbar/StonePattern")
 _generate_button = NodePath("UI/MapsAnd3DFunctions/Toolbar/Generate")
 _save_map_button = NodePath("UI/MapsAnd3DFunctions/Toolbar/SavePNG")
 _save_all_button = NodePath("UI/MapsAnd3DFunctions/Maps/SavePanel/VBoxContainer/Button")
+_save_material_button = NodePath("UI/MapsAnd3DFunctions/Maps/SavePanel/VBoxContainer/SaveMaterialButton")
 _save_format = NodePath("UI/MapsAnd3DFunctions/Maps/SavePanel/VBoxContainer/FormatOption")
 _show_full_material_button = NodePath("UI/MapsAnd3DFunctions/3DViewFunctions/ShowFullMaterial")
 _next_cube_map_button = NodePath("UI/MapsAnd3DFunctions/3DViewFunctions/NextCubeMap")
@@ -61,6 +71,7 @@ environment = SubResource("Environment_jyhfs")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1170076995]
 transform = Transform3D(0.025299385, -0.84605336, -0.5324975, 0.4523058, -0.46534008, 0.76084036, -0.8915039, -0.26010054, 0.37090194, 0, 0, 0)
+visible = false
 shadow_enabled = true
 
 [node name="UI" type="MarginContainer" parent="." unique_id=733213221]
@@ -69,6 +80,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_jyhfs")
 theme_override_constants/margin_left = 50
 theme_override_constants/margin_top = 50
 theme_override_constants/margin_right = 50
@@ -192,7 +204,7 @@ visible = false
 layout_mode = 2
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=700108628]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.53061676, 0.29229593, 1.7549264)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9352776, 0.29229593, 1.7549264)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=727868728]
 transform = Transform3D(0.65848535, -0.253429, -0.70864046, -0.36455423, 0.7163454, -0.5949368, 0.6584055, 0.650095, 0.37931424, 0, 0, 0)
@@ -203,19 +215,37 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6374471, 0, 1.1672685)
 
 [node name="LoadDialog" type="FileDialog" parent="." unique_id=1800000009]
 title = "Open a Source"
+file_mode = 0
 access = 2
 filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp, *.exr, *.hdr ; Supported images")
 
 [node name="SaveDialog" type="FileDialog" parent="." unique_id=1800000010]
-mode = 4
 title = "Save a Map"
 access = 2
 filters = PackedStringArray("*.png ; PNG image")
 
 [node name="SaveAllDialog" type="FileDialog" parent="." unique_id=1800000011]
-mode = 2
 title = "Save Maps Folder"
+file_mode = 2
 access = 2
 
 [node name="DebounceTimer" type="Timer" parent="." unique_id=1800000012]
 one_shot = true
+
+[node name="backdrop" type="MeshInstance3D" parent="." unique_id=272283328]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+mesh = SubResource("QuadMesh_616h8")
+
+[node name="ground" type="MeshInstance3D" parent="." unique_id=1592591109]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, -2, -2)
+mesh = SubResource("QuadMesh_616h8")
+
+[node name="RotatatableSpotLight" type="Node3D" parent="." unique_id=200089871]
+transform = Transform3D(0.7505686, 0.4669857, -0.46751615, 0.05974817, 0.656649, 0.7518259, 0.6580857, -0.5922302, 0.4649586, 0, 0, 0)
+
+[node name="SpotLight3D" type="SpotLight3D" parent="RotatatableSpotLight" unique_id=1525543960]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+light_energy = 2.0
+shadow_enabled = true
+spot_range = 15.0
+spot_attenuation = 2.0

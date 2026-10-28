@@ -29,3 +29,8 @@ popup/item_4/id = 4
 [node name="Button" type="Button" parent="VBoxContainer" unique_id=999200297]
 layout_mode = 2
 text = "Save all maps!"
+
+[node name="SaveMaterialButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+tooltip_text = "Save every map as a file and the Godot material that uses them, in one folder"
+text = "Save Material"

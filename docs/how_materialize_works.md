@@ -680,6 +680,26 @@ through the red channel — all PASS, 1219 frames.
 - **Export formats**: Godot saves PNG, JPG, WebP. BMP / TIFF / TGA need a
   custom writer, so the saving box writes PNG and the status line says so. Unity
   used `FreeImage.dll` for those formats.
+- **Save Material** is a port-only button: Materialize has no material file, its
+  material lives on the test object's Standard shader (`MainGui.cs` lines
+  283-335). The button writes the map files and `materialize_material.res`, a
+  binary `StandardMaterial3D` with the slot textures embedded, so the export
+  folder is self-contained. A text `.tres` is unusable for a folder outside the
+  project: embedded 8-bit maps serialize as one decimal per byte (a 1024² map is
+  a ~50 MB text file), and `res://` paths are project-relative, so a `.tres`
+  cannot reference exported PNGs.
+- **The save dialogs are Godot's own, on the real filesystem.** The three
+  `FileDialog`s in `main.tscn` use ACCESS_FILESYSTEM access, so Save Material,
+  `Save all maps!` and the single-map Save dialog pick real folders and files on
+  the filesystem, not the `user://` sandbox. The folder dialog is in Open Folder
+  mode (`file_mode = 2`), the mode that emits `dir_selected`; the `mode` key the
+  dialogs carried set `Window.mode` (minimized/fullscreen), a stale artifact of
+  the port, so the file mode stayed the default Save and no folder pick was ever
+  emitted. The OS chooser is dead on this system: Godot's portal response match
+  rule carries `destination=`, and the bus daemon strips that header when
+  forwarding a directed signal, so the match never fires and no pick ever
+  arrives. `tests/save_dialog_probe.tscn` drives the dialog's real ok-button
+  press end to end.
 - **Project save/load** (Unity XML → `ConfigFile`/JSON): deferred.
 - **Stock maps, cubemaps, FBX meshes, PSD icons**: not copied from the Unity
   repo. FBX cannot be imported by Godot (needs a `.glb` conversion), PSD icons
@@ -766,6 +786,17 @@ through the red channel — all PASS, 1219 frames.
   Metallic slot is not filled yet. The Full Material
   is not a map in the store, so the shell keys the mesh's full-material mode
   with its own `FULL_MESH_MAP` value.
+- `_build_export_material()` + `_write_maps()` + `_save_material_into()` in
+  `scripts/main.gd` — "Save Material" writes every map as
+  `materialize_<map>.<ext>` (Materialize's suffix naming, `MainGui.cs` lines
+  543-547) and then `materialize_material.res`: a fresh `StandardMaterial3D`
+  with Albedo, Normal (`normal_enabled`), Heightmap
+  (`heightmap_enabled`, scale 0.5, Materialize's height slider default),
+  Roughness, Metallic and AO (`ao_enabled`), each slot reading its map's red
+  channel with the shading control at 1.0, so the map drives the slot on its own
+  and the preview's 0.6 roughness never rides into the file. Empty maps leave
+  their slots empty and switch their features off, the way the Full Material
+  samples a material default for an empty slot.
 - `tests/probe_hsl.gd` + `tests/probe_hsl.gdshader` + `tests/probe_hsl.tscn` —
   the GPU `rgb_to_hsl` probe: the shader's HSL conversion measured against the
   GDScript conversion over the stone pattern.
@@ -778,6 +809,13 @@ through the red channel — all PASS, 1219 frames.
 - `tests/full_live.gd` + `tests/full_live.tscn` — drives "Show full Material":
   the Full Material's albedo, metallic, and roughness slots, the split source,
   and the reveal seam.
+- `tests/material_live.gd` + `tests/material_live.tscn` — drives "Save Material"
+  through the running shell: the button's export, the format picker's PNG
+  fallback, the `materialize_<map>` files, and `materialize_material.res` read
+  back with `ResourceLoader.load` and checked slot by slot (size, red channel,
+  feature flags, heightmap scale, shading controls, and the slot values against
+  the maps), then a partial export after Clear all, and Save all maps on the
+  same folder picker writing no material file.
 - `tests/roughness_cpu.gd` + `tests/roughness_cpu.tscn` — CPU-only mirror of the
   Roughness chain (blur + the smoothness pass + the invert), the mask-edge and
   overlay-monotonicity checks, the metallic coupling checks, and the panel checks.
@@ -825,7 +863,8 @@ through the red channel — all PASS, 1219 frames.
   slot, the mesh, the load / save / save-all dialogs, the port-only toolbar (load
   diffuse, stone pattern, resolution, generate, save, status), colour picking,
   the debounce timer, and the roadmap print.
-- `scenes/save_panel.tscn` — the saving box (file format + `Save all maps!`).
+- `scenes/save_panel.tscn` — the saving box (file format + `Save all maps!` +
+  the port-only `Save Material` button, `main.gd`'s `_save_material_button`).
 - `tests/blit_probe.gd` + `tests/probe.gdshader` + `tests/blit_probe.tscn` —
   readback, HDR, repeat-wrap, blur-kernel probe.
 - `tests/height_test.gd` + `tests/height_test.tscn` — end-to-end run on the stone
@@ -982,6 +1021,36 @@ NVIDIA RTX 3080). What is verified:
   combine pass, "Set as AO Map" and Clear cycle the box, the groove column
   (0.751) is darker than the plate column (0.753), and the AO map fills the Full
   Material's AO slot through the red channel, 1219 frames.
+- **The Save Material export** (`tests/material_live.tscn`, 512 px): the six maps
+  (height, diffuse, normal, metallic 0.969, roughness 0.312, AO 0.817) all land
+  in the chosen folder as `materialize_<map>.png`, the TGA format falls back to
+  PNG with no `.tga` files written, and `materialize_material.res` loads back as
+  a `StandardMaterial3D` whose slots carry the maps it was built from: albedo
+  mean 0.410 vs diffuse 0.412, normal slot mean blue 0.984 / tilt 0.105,
+  heightmap center red 0.459 vs 0.460, roughness slot 0.310 vs map 0.312,
+  metallic slot 0.968 vs 0.969, AO slot 0.815 vs 0.817, every slot at 512²
+  reading its red channel, `heightmap_scale` 0.5, roughness and metallic base
+  1.0, and the Normal, Heightmap and AO features switched on. After Clear all
+  texture maps the partial export keeps the source in Albedo, leaves every other
+  slot empty, switches the AO and Normal features off, and writes no file for a
+  cleared map; Save all maps on the same folder picker writes the maps and no
+  material file.
+- **The save dialogs, driven end to end** (`tests/save_dialog_probe.tscn`):
+  drives the shell through the Metallic panel, presses Save Material, asserts all
+  three `FileDialog`s are Godot's own with ACCESS_FILESYSTEM access and the
+  folder dialog is in Open Folder mode, points each dialog at an absolute
+  folder, presses each dialog's real ok button, and checks the answers: the
+  folder dialog emits `dir_selected` with the picked folder, the status reports
+  the material export, the map PNGs and `materialize_material.res` land in the
+  folder, the material loads back with the metallic slot carrying the map, the
+  Save Map press writes its single PNG, and the Load press picks a file from the
+  dialog's own list and the shell loads it as the source. The OS chooser is
+  off the save path: the portal answers a pick (the request object vanishes on
+  accept), but Godot's response match rule carries `destination=` and the bus
+  daemon strips that header when forwarding a directed signal, so the response
+  is never seen. `tools/portal_destination_test/` is the two-process control:
+  with the `destination=` filter the directed signal is missed, without it the
+  identical directed signal is received.
 
 What is not verified: the visual result of the maps on the mesh (the screenshots
 need a human eye), the exact stacked-blur tail Unity produces (see the stacking
