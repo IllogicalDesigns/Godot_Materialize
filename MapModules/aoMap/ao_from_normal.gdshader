@@ -1,186 +1,146 @@
 shader_type canvas_item;
 
-// AO Map tool, ported from Materialize's Assets/Shaders/Resources/
-// Blit_Shader.shader pass 7 (fragAO, lines 344-415) and pass 8
-// (fragCombineAO, lines 417-432), the pair AOFromNormalGui runs.
+// Ambient Occlusion, Materialize's Blit_Shader.shader fragAO (lines 344-415)
+// and fragCombineAO (lines 417-432). The pass source is the Normal map,
+// blitted straight from `_NormalMap` (AOFromNormalGui.cs line 323).
 //
-// One shader holds the passes of the tool, and the GDScript driver picks one
-// with the `pass` uniform - exactly like Unity picked a SubShader pass:
+// Pass 1 is the accumulation pass, Unity's pass 7. Each pass sweeps a cone
+// direction `direction = (sin(progress * TAU), cos(progress * TAU))` where
+// progress = i / passes, and samples 50 points inside that cone at
+// `UV + texel * uvOffset`, `uvOffset = direction * spread * j/50 +
+// randomizer`. The normal term AO.x is the weighted dot product of the
+// sampled normal against the cone direction; the depth term AO.y is the best
+// occlusion found over the samples, built from `samplePos = cone offset *
+// spread, (sampleHeight - mainHeight) * Depth` and the dot of that direction
+// against the vertical axis. Unity applies the AO.x curve, then `AO.y = 1 -
+// AO.y`, and lerps the pass result into the accumulator by `1 / i` — the
+// running mean over the 100 passes. The accumulator carries AO.x in red and
+// AO.y in green, the way Unity's blend texture does; Unity's blend texture
+// starts black, so the accumulator starts as flat black.
 //
-//   pass 1 AO      - fragAO: one ray direction per pass (_Progress turns the
-//                    direction a full circle), 50 samples along the ray. The
-//                    normal term is a weighted mean over the samples, the
-//                    height term the strongest geometric occlusion, and the
-//                    result is lerped into the accumulator at 1 / pass index,
-//                    so 99 passes read as a running mean of ~100 directions.
-//   pass 2 COMBINE - fragCombineAO: lerp the normal AO and the depth AO at
-//                    "Blend Normal AO and Depth AO", add "AO Bias", raise to
-//                    the power of "AO Power", saturate.
+// Pass 2 is the combine pass, Unity's pass 8: `AO = lerp(accumulator.x,
+// accumulator.y, AOBlend)`, then the Final Bias is added, the Final Contrast
+// power is applied, and the value is saturated. Materialize applies these in
+// the preview material per frame (AOFromNormalGui.cs lines 159-161); this port
+// bakes them into the stored map, so the stored texture matches the preview,
+// and the panel re-runs the combine pass when a slider moves.
 //
-// UV mirroring, the frame conversion the port needs: Godot's UV points down,
-// Unity's up, so the ray direction, the sample offsets, and the normal's Y
-// component are all negated. Unity's default `_FlipNormalY == 0` mirror
-// (fragAO lines 350-353) becomes this conversion, so the port reads its stored
-// signed normal raw (the convention `normal_from_height.gdshader` writes).
+// Godot UV points down, Unity texture space points up. The stored normal's Y
+// is negated at the frame conversion, which is exactly Unity's `_FlipNormalY`
+// mirror, so the mirror flag is absorbed here. Unity's `startOffset` (line 362,
+// seeded from `_Time.y`) is computed and never used, so it is dropped.
 //
-// Unity ping-pongs the accumulator: pass 7 reads `_BlendTex` (the previous
-// blend map), writes the working map, and a plain copy blit moves the working
-// map into the blend map (`AOFromNormalGui.cs` lines 323-324). The port keeps
-// one accumulator Image and feeds it back as the `accumulator` sampler, the
-// same accumulation with one pass per iteration.
-//
-// Deviations: Unity applies AO Power, AO Bias and the blend to the preview
-// material every frame while dragging (`AOFromNormalGui.cs` lines 159-161) and
-// bakes them in pass 8 at Set time; the port bakes the grade inside pass 2, so
-// the shell's debounce re-runs the combine pass on every settle. Unity seeds
-// the ray jitter from `_Time.y` (fragAO line 362), a per-frame clock Godot has
-// no equivalent of; the value is unused by the pass, so the port skips it.
-//
-// Data space: raw 0..1 file values (display-referred) stored in float
-// textures, the same space the Height, Diffuse, Normal, Metallic and
-// Roughness tools work in.
+// The random hash is the sin fract hash; the ray seeds are unrelated between
+// the GPU and the CPU mirror in `tests/ao_cpu.gd`, so the comparison there is
+// on aggregate statistics, not per pixel.
+
+uniform sampler2D source : source_color, filter_linear, repeat_enable;
+uniform sampler2D accumulator : source_color, filter_linear, repeat_enable;
+uniform sampler2D height_map : source_color, filter_linear, repeat_enable;
+
+// The source texel size, bound by Blit (TEXEL_PARAM), the cone sample offset.
+uniform highp vec2 texel = vec2(0.001, 0.001);
+
+uniform int pass = 1;
+uniform int i = 1;
+uniform float progress = 0.01;
+uniform float spread = 50.0;   // the Spread slider, 10..100
+uniform float depth = 100.0;    // the Depth slider, 0..256, in height-map units
+uniform float blend = 1.0;      // Unity's _AOBlend, the Normal/Depth lerp weight
+uniform float final_contrast = 1.0;
+uniform float final_bias = 0.0;
+
+// The samples per pass. Unity hardcodes 50; tests shrink it with the driver's
+// params, which also shrink the pass count.
+uniform int samples = 50;
 
 const int PASS_AO = 1;
 const int PASS_COMBINE = 2;
 
-// Unity's 50-sample ray per pass, fragAO line 361 (`int AOSamples = 50`), as
-// a uniform so a test can shrink the sweep.
-uniform int samples = 50;
-
-const float TAU = 6.28318530718;
-
-// The Normal map, Unity's `_MainTex` / `_NormalMap`, the pass source.
-uniform sampler2D source : filter_linear, repeat_enable;
-// The Height map, Unity's `_HeightTex` (`_HDHeightMap` first, then
-// `_HeightMap`; the port has one height map).
-uniform sampler2D height : filter_linear, repeat_enable;
-// The running mean, Unity's `_BlendTex` (`_BlendedAOMap`), the accumulator the
-// driver keeps between passes.
-uniform sampler2D accumulator : filter_linear, repeat_enable;
-
-uniform highp vec2 texel = vec2(0.001, 0.001);
-uniform highp int pass = 1;
-
-// --- AO pass ----------------------------------------------------------------
-
-// Unity `_Progress`: the ray direction sweeps the full circle as
-// progress = i / 100 over the 99 passes.
-uniform highp float progress = 0.01;
-// Unity `_BlendAmount` = 1 / pass index, the accumulator lerp weight.
-uniform highp float blend_amount = 0.01;
-// "AO pixel Spread": the ray length in pixels, Unity `_Spread`.
-uniform highp float spread = 50.0;
-// "Pixel Depth": how steep a height step counts, Unity `_Depth`.
-uniform highp float depth = 100.0;
-
-// --- Combine pass -------------------------------------------------------------
-
-// "Blend Normal AO and Depth AO", Unity `_AOBlend`.
-uniform highp float blend = 1.0;
-// "AO Power", Unity `_FinalContrast`.
-uniform highp float final_contrast = 1.0;
-// "AO Bias", Unity `_FinalBias`.
-uniform highp float final_bias = 0.0;
-
-float saturate(highp float value) {
-	return clamp(value, 0.0, 1.0);
+vec3 rand(vec3 seed)
+{
+	vec3 s = seed * 12.9898;
+	return fract(sin(vec3(dot(s, vec3(1.0, 2.0, 3.0)) + dot(s, vec3(7.0, 13.0, 17.0))) * 43758.5453));
 }
 
-// Unity's rand() hash, same port the normal map shader uses.
-float rand(vec3 co) {
-	return fract(sin(dot(co, vec3(12.9898, 78.233, 37.7198))) * 43758.5453);
+float saturate(float x)
+{
+	return clamp(x, 0.0, 1.0);
 }
 
-// Unity normalize() of a vector that can be zero-length in edge cases, the
-// same guard the other ported shaders use.
-vec3 safe_normalize(vec3 v) {
-	return v / max(length(v), 0.0001);
+// The stored normal, signed 0.5 neutral, decoded to tangent space and flipped
+// into the Y-up frame Unity samples in.
+vec3 decode_normal(vec4 stored)
+{
+	vec3 n = vec3(stored.r * 2.0 - 1.0, stored.g * 2.0 - 1.0, stored.b * 2.0 - 1.0);
+	n.y = -n.y;
+	float l = length(n);
+	if (l < 1e-5)
+	{
+		return vec3(0.0, 0.0, 1.0);
+	}
+	return n / l;
 }
 
-void fragment() {
-	if (pass == PASS_COMBINE) {
-		// fragCombineAO, Blit_Shader pass 8: lerp the two AO channels, then
-		// AO Bias, AO Power, saturate.
-		highp vec2 ao = texture(accumulator, SCREEN_UV).xy;
-		highp float a = mix(ao.x, ao.y, blend);
-		a += final_bias;
-		// Unity pow()s straight after the bias. pow() of a negative base is
-		// undefined in GLSL, so the port clamps to 0 first, documented.
+void fragment()
+{
+	vec4 accum = texture(accumulator, SCREEN_UV);
+	if (pass == PASS_AO)
+	{
+		vec3 mainTex = decode_normal(texture(source, SCREEN_UV));
+		float mainHeight = texture(height_map, SCREEN_UV).g;
+		// Unity lines 371-372, the cone direction for this pass.
+		vec2 direction = vec2(sin(progress * TAU), cos(progress * TAU));
+		float ao_x = 0.0;
+		float weight = 0.0;
+		float ao_y = 0.0;
+		for (int j = 1; j <= samples; j++)
+		{
+			float prog = float(j) / float(samples);
+			// Unity lines 377-378, the per-sample randomizer inside the cone.
+			vec3 seed = vec3(SCREEN_UV * 320.0, float(i * 100 + j));
+			vec2 randomizer = vec2(rand(seed).x, rand(seed.zyx).x) * prog * 0.1;
+			vec2 uv_offset = direction * spread * prog + randomizer;
+			vec2 true_dir = normalize(uv_offset);
+			vec2 sample_uv = SCREEN_UV + texel * uv_offset;
+			vec3 sample_tex = decode_normal(texture(source, sample_uv));
+			float sample_height = texture(height_map, sample_uv).g;
+			// Unity lines 387-389, the normal term: the dot of the sampled
+			// normal with the cone direction, weighted by sqrt(1 - progress).
+			float importance = sqrt(1.0 - prog);
+			ao_x += dot(sample_tex, vec3(true_dir, 0.0)) * importance;
+			weight += importance;
+			// Unity lines 391-394, the depth term: the best occlusion found,
+			// the z dot of the sample direction scaled by its distance.
+			vec3 sample_pos = vec3(true_dir * spread * prog, (sample_height - mainHeight) * depth);
+			float dist = saturate(length(sample_pos) * 0.1);
+			float l = length(sample_pos);
+			float ao_sample = 0.0;
+			if (l > 1e-5)
+			{
+				ao_sample = saturate(sample_pos.z / l) * dist;
+			}
+			ao_y = max(ao_sample, ao_y);
+		}
+		ao_x /= max(weight, 1e-5);
+		// Unity lines 400-404, the AO.x curve.
+		float ao_x1 = saturate(ao_x + 1.0);
+		float ao_x2 = saturate(ao_x + 0.5);
+		ao_x = pow(ao_x1, 5.0) * pow(ao_x2, 0.2);
+		ao_x = sqrt(ao_x);
+		ao_y = 1.0 - ao_y;
+		// Unity line 409, the running mean into the accumulator, weight 1 / i.
+		float blend_amount = 1.0 / float(i);
+		COLOR = vec4(mix(accum.rg, vec2(ao_x, ao_y), blend_amount), 0.0, 1.0);
+	}
+	else
+	{
+		// Unity fragCombineAO lines 423-428. The Final Bias can push the value
+		// negative; pow of a negative base is undefined in GLSL, so the base
+		// is clamped at zero, which Unity's HDR float textures keep.
+		float a = mix(accum.r, accum.g, blend) + final_bias;
 		a = pow(max(a, 0.0), final_contrast);
 		a = saturate(a);
 		COLOR = vec4(vec3(a), 1.0);
-		return;
 	}
-
-	highp vec2 uv = SCREEN_UV;
-
-	// Unity's mainTex, normalized and flipped; fragAO never reads it after
-	// the flip, so the port keeps it only to mirror the pass faithfully.
-	highp vec3 main_tex = safe_normalize(texture(source, uv).rgb * 2.0 - 1.0);
-	main_tex.y = -main_tex.y;
-	highp float main_height = texture(height, uv).r;
-
-	// fragAO line 369: the ray direction from _Progress, one full turn per
-	// generation. Godot's Y-down frame negates the Y, see the header.
-	highp vec2 direction = vec2(sin(progress * TAU), cos(progress * TAU));
-
-	highp vec2 ao = vec2(0.0, 0.0);
-	highp float ao_accum = 0.0;
-
-	for (int i = 1; i <= samples; i += 1) {
-		highp float fi = float(i);
-		highp float p = fi / float(samples);
-
-		// fragAO line 378: the jitter, two hash channels scaled by the sample
-		// position, so the ray wanders outward.
-		highp vec2 randomizer = vec2(rand(vec3(uv, fi)), rand(vec3(uv.yx, fi))) * p * 0.1;
-		highp vec2 uv_offset = direction * spread * p + randomizer;
-		highp vec2 true_dir = safe_normalize(vec3(uv_offset, 0.0)).xy;
-
-		// fragAO line 382: the sample pixel, Unity's pixelSize * uvOffset,
-		// the Y negated for the port's UV frame, see the header.
-		highp vec2 sample_uv = uv + texel * vec2(uv_offset.x, -uv_offset.y);
-
-		highp vec3 sample_tex = texture(source, sample_uv).rgb * 2.0 - 1.0;
-		sample_tex.y = -sample_tex.y;
-		highp float sample_height = texture(height, sample_uv).r;
-
-		// Normal Only, same as depth from normal: the ray tilting back
-		// towards the surface is the occlusion the normal map reads, weighted
-		// sqrt(1 - progress) so the far samples matter least.
-		highp float sample_importance = sqrt(1.0 - p);
-		ao.x += dot(sample_tex, vec3(true_dir.x, -true_dir.y, 0.0)) * sample_importance;
-		ao_accum += sample_importance;
-
-		// Depth Only, pure geometric occlusion: the ray in 3D with the height
-		// step as Z, the tangent Y negated into the port's frame, and the
-		// straight-up dot of the sample direction the strongest occlusion.
-		highp vec3 sample_pos = vec3(true_dir.x, -true_dir.y, 0.0) * spread * p;
-		sample_pos.z = (sample_height - main_height) * depth;
-		highp float sample_dist = saturate(length(sample_pos) * 0.1);
-		highp float sample_ao = saturate(dot(vec3(0.0, 0.0, 1.0), safe_normalize(sample_pos)));
-		ao.y = max(sample_ao * sample_dist, ao.y);
-	}
-
-	// fragAO lines 401-406: the normal-AO curve. AO.x runs negative in
-	// occluded directions, so the two saturate bands split the dark and light
-	// parts, the pow(5) / pow(0.2) product shapes them, and the sqrt lifts the
-	// curve back up.
-	ao.x *= 1.0 / max(ao_accum, 0.0001);
-	highp float ao_x1 = saturate(ao.x + 1.0); // Dark Parts
-	highp float ao_x2 = saturate(ao.x + 0.5); // light parts
-	ao.x = pow(ao_x1, 5.0);
-	ao.x *= pow(ao_x2, 0.2);
-	ao.x = sqrt(ao.x);
-
-	// The depth term counts as occlusion, so 0 is open and 1 is closed, and
-	// the pass output is the light side.
-	ao.y = 1.0 - ao.y;
-
-	// fragAO line 412: the running mean, Unity lerps the previous accumulator
-	// at 1 / i. The first pass blends at 1.0 straight, so a black accumulator
-	// seed leaves it out, the way Unity's empty blend texture does.
-	highp vec2 blend_tex = texture(accumulator, uv).xy;
-	ao = mix(blend_tex, ao, blend_amount);
-	COLOR = vec4(ao.xy, 1.0, 1.0);
 }

@@ -115,12 +115,15 @@ func generate(source: Image, blit: Blit, height: Image = null,
 func _ao_params(s: Dictionary, height_map: Image, accum: Image, i: int, passes: int) -> Dictionary:
 	return {
 		"pass": PASS_AO,
-		"height": height_map,
+		"height_map": height_map,
 		"accumulator": accum,
 		# Unity lines 320-321, the per-pass uniforms. The sweep count is a
 		# setting so a test can shrink the chain; Unity's default is 100.
 		"progress": float(i) / float(passes),
-		"blend_amount": 1.0 / float(i),
+		# The shader derives `blend_amount = 1 / i` from `i` (Unity line 321,
+		# `_BlendAmount = 1 / i`); the pass index is the uniform, so it is
+		# handed over directly.
+		"i": i,
 		"samples": int(s.get("ao_samples", AO_SAMPLES)),
 		"spread": float(s["spread"]),
 		"depth": float(s["depth"]),

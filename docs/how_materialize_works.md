@@ -643,7 +643,22 @@ this engine version has (`ao_enabled`, `ao_light_affect`, `ao_texture`,
 (`AO_From_Normal_Preview.shader`) multiplies the AO map into the lit colour on
 the test object, which is what the engine's AO slot does.
 
-Verified: TBD by the ao_cpu + ao_live runs.
+Verified: `tests/ao_cpu.tscn` mirrors the cone sweep on the stone wall (32 px,
+12 passes, 6 samples): gpu mean 0.724 vs cpu 0.725, std 0.171 on both, the
+groove column (mortar line) is darker than the plate column on both sides
+(0.676 gpu / 0.669 cpu vs 0.682 / 0.688), blend off raises the mean to 0.859
+gpu / 0.855 cpu, AO Power 5 pushes it to 0.313 / 0.315, AO Bias 0.3 lifts it to
+0.937 / 0.938 — the combine pass agrees to 0.002. `tests/ao_probe.tscn` sweeps
+the cone model at 16 px: blend on gives spread 50 → 0.627, 100 → 0.708, 10 →
+0.671 (the mean rises with spread at 16 px, the cone wraps the tile), blend off
+gives 0.876 / 0.885 / 0.707, so the AO.x curve sits at 0.876 on the flat plate.
+`tests/ao_live.tscn` drives the panels through the shell at 512 px: the wall
+opens at mean 0.817, Spread 100 changes the map (0.813 — the mean's direction
+is resolution-dependent, the fixed part is that the slider moves the map),
+blend off raises the mean to 0.856, AO Power and Bias re-run the combine pass,
+"Set as AO Map" and Clear cycle the box, the groove column (0.751) is darker
+than the plate column (0.753), and the AO map fills the Full Material's AO slot
+through the red channel — all PASS, 1219 frames.
 
 ## 10. Skipped / deferred in this commit
 
@@ -658,8 +673,8 @@ Verified: TBD by the ao_cpu + ao_live runs.
   seam for the Diffuse Reveal Slider, so dragging either slider costs no pass. Materialize renders every map on a test object with the DNMST preview
   shader and cubemap lighting; the port applies one map at a time with a plain
   `shader_type spatial` material, so DNMST, the cubemap cycling (`next cube map`)
-  and the FBX test meshes are still deferred. "Show full Material" fills four
-  `StandardMaterial3D` slots (Albedo, Normal, Heightmap, Roughness); the Metallic
+  and the FBX test meshes are still deferred. "Show full Material" fills five
+  `StandardMaterial3D` slots (Albedo, Normal, Heightmap, Roughness, AO); the Metallic
   slot (`metallic_texture` + `METALLIC_TEXTURE_ALBEDO_CHANNEL_A`) is the next one
   to wire, and `tests/full_live.tscn` grows its assertion when it is.
 - **Export formats**: Godot saves PNG, JPG, WebP. BMP / TIFF / TGA need a
@@ -745,8 +760,10 @@ Verified: TBD by the ao_cpu + ao_live runs.
 - `_fill_full_material()` in `scripts/main.gd` — "Show full Material" fills one
   exported `StandardMaterial3D` (`_full_material`) from the map store: Albedo
   (`albedo_texture`), Normal (`normal_texture`), Heightmap
-  (`heightmap_texture`), and Roughness (`roughness_texture` +
-  `TEXTURE_CHANNEL_RED`). The Metallic slot is not filled yet. The Full Material
+  (`heightmap_texture`), Roughness (`roughness_texture` +
+  `TEXTURE_CHANNEL_RED`), and AO (`ao_texture` + `TEXTURE_CHANNEL_RED`, with
+  the `ao_enabled` flag on with the map and off when it is cleared). The
+  Metallic slot is not filled yet. The Full Material
   is not a map in the store, so the shell keys the mesh's full-material mode
   with its own `FULL_MESH_MAP` value.
 - `tests/probe_hsl.gd` + `tests/probe_hsl.gdshader` + `tests/probe_hsl.tscn` —
@@ -927,7 +944,10 @@ NVIDIA RTX 3080). What is verified:
   GPU's `rgb_to_hsl` is measured against the CPU conversion by
   `tests/probe_hsl.tscn` (agreement to 1e-3). `tests/full_live.tscn` runs "Show
   full Material" and asserts the Albedo, Normal, and Heightmap slots;
-  `tests/roughness_live.tscn` asserts the Roughness slot and its red channel.
+  `tests/roughness_live.tscn` asserts the Roughness slot and its red channel;
+  `tests/ao_live.tscn` asserts the AO slot (the `ao_enabled` flag, the map, and
+  its red channel) and the cone-sweep checks on the spread / blend / power / bias
+  sliders.
 - **The Roughness chain, on the CPU** (`tests/roughness_cpu.tscn`, 256²): the
   CPU mirror gives stone mean 0.600 stored as roughness (0.400 as smoothness),
   base roughness 0.9 writes 0.9, `BlurSize` 20 smooths the sample masks
@@ -944,15 +964,30 @@ NVIDIA RTX 3080). What is verified:
   with the map, read from the red channel, at the map's size; the Reveal Slider
   at 0.3 writes `reveal` / `split_reveal` and the label with no pass chain;
   clearing the Metallic map and setting Base Roughness 0.2 moves the mean to
-  0.202, which is the base level reading straight; "Set as Roughness" re-runs the
-  chain, and Clear empties the map. The panel's defaults, every widget binding,
-  the isolate rows, and the source radio all check out.
+  0.202, which is the base level reading straight; "Set as Roughness" re-runs
+  the chain, and Clear empties the map. The panel's defaults, every widget
+  binding, the isolate rows, and the source radio all check out.
+- **The AO chain, on the CPU and the GPU** (`tests/ao_cpu.tscn`, 32², 12 passes,
+  6 samples): the CPU mirror of the cone sweep agrees with the GPU on the
+  aggregate stats — mean 0.724 gpu vs 0.725 cpu, std 0.171 on both; the mortar
+  groove column is darker than the brick-face plate column on both sides
+  (0.676 / 0.669 vs 0.682 / 0.688); blend off raises the mean to 0.859 gpu /
+  0.855 cpu; AO Power 5 pushes it to 0.313 / 0.315 and AO Bias 0.3 lifts it to
+  0.937 / 0.938, so the combine pass agrees to 0.002. `tests/ao_probe.tscn`
+  sweeps the cone model at 16 px: blend on gives spread 50 → 0.627, 100 → 0.708,
+  10 → 0.671; blend off gives 0.876 / 0.885 / 0.707, so the AO.x curve sits at
+  0.876 on the flat plate. `tests/ao_live.tscn` drives the real app at 512 px
+  with the full 100 passes: the wall opens at mean 0.817, Spread 100 changes the
+  map (0.813), blend off raises the mean to 0.856, AO Power and Bias re-run the
+  combine pass, "Set as AO Map" and Clear cycle the box, the groove column
+  (0.751) is darker than the plate column (0.753), and the AO map fills the Full
+  Material's AO slot through the red channel, 1219 frames.
 
 What is not verified: the visual result of the maps on the mesh (the screenshots
 need a human eye), the exact stacked-blur tail Unity produces (see the stacking
-note), and everything that depends on unported maps (Edge, AO, alignment,
+note), and everything that depends on unported maps (Edge, alignment,
 seamless tiling, DNMST preview, cubemap lighting, project save, BMP/TIFF/TGA
 export), plus the height tool's "Use Normal as input" path, which the ported
-normal map now makes possible. The ported Metallic and Roughness chains are
+normal map now makes possible. The ported Metallic, Roughness and AO chains are
 measured against CPU mirrors and the live app, not against a render from the
 Unity tool, so the numbers are the port's own.

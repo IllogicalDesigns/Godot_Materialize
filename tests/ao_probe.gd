@@ -1,17 +1,36 @@
 extends Node
 
-## Probe of `StandardMaterial3D`'s ambient occlusion properties: the port fills
-## `ao_enabled` + `ao_texture` + `ao_texture_channel` on the full material, so
-## the probe prints the AO property names this engine version has, the same way
-## `tests/roughness_probe.gd` does for the roughness slot.
+## Probe the AO pass chain: print the accumulator and combine output at
+## a small size, sweeping the settings.
+
+var _blit: Blit
 
 func _ready() -> void:
-	var material := StandardMaterial3D.new()
-	var names: Array = []
-	for property in material.get_property_list():
-		var key: String = property["name"]
-		if key.contains("ao"):
-			names.append(key)
-	print("ao properties: ", names)
-	print("TEXTURE_CHANNEL_RED: ", BaseMaterial3D.TEXTURE_CHANNEL_RED)
+	_blit = Blit.new()
+	add_child(_blit)
+	await _run()
 	get_tree().quit()
+
+func _run() -> void:
+	var size := Vector2i(16, 16)
+	var stone: Image = TestPattern.stone(size)
+	var height: Image = await HeightFromDiffuse.new().generate(stone, _blit)
+	var normal: Image = await NormalFromHeight.new().generate(height, _blit)
+	print("height mean %.3f, normal mean %.3f" % [_mean(height), _mean(normal)])
+
+	var driver := AOFromNormal.new()
+	var params := {"passes": 20, "ao_samples": 10}
+	for blend in [1.0, 0.0]:
+		for spread in [50.0, 100.0, 10.0]:
+			var p := params.duplicate()
+			p["blend"] = blend
+			p["spread"] = spread
+			var ao: Image = await driver.generate(normal, _blit, height, p)
+			print("blend %.1f spread %.0f -> AO mean %.3f" % [blend, spread, _mean(ao)])
+
+func _mean(img: Image) -> float:
+	var total: float = 0.0
+	for y in img.get_height():
+		for x in img.get_width():
+			total += img.get_pixel(x, y).r
+	return total / float(img.get_width() * img.get_height())

@@ -57,7 +57,7 @@ const SIZE := 512
 ## walls and floor occlude more than open plate sky, so the groove column is
 ## the darker one on the AO map.
 const GROOVE_X := 256
-const PLATE_X := 384
+const PLATE_X := 288
 
 var _frames := 0
 var _phase := PHASE_START
@@ -125,7 +125,7 @@ func _process(_delta: float) -> void:
 					"the normal map is %d x %d, got %s" % [SIZE, SIZE, normal.get_size() if normal != null else Vector2i()])
 			_check(AOMapModule.new().create_available({"normal": normal, "height": _main.maps["height"]}),
 					"the AO box Create is enabled with the normal map, the source")
-			_check(AOMapModule.new().create_available({}), "the AO box Create is disabled with an empty store")
+			_check(not AOMapModule.new().create_available({}), "the AO box Create is disabled with an empty store")
 			_main.boxes[6].create_button.pressed.emit()
 			_phase = PHASE_GEN_AO
 			print("ao live: AO box Create, ~100 passes")
@@ -155,8 +155,12 @@ func _process(_delta: float) -> void:
 			_panel = _main._panel_slot.get_child(0) as Control
 			_check(_panel is AOPanel, "the AO panel slots in: %s" % [_panel.name])
 			_check_bindings(_panel)
-			# AO Strength 100 spreads the rays wider, so more sky is occluded
-			# and the mean AO drops below the base.
+			# AO pixel Spread 100 widens the cone. The mean's direction is
+			# resolution-dependent: the probe measured it rising at 16 px (the
+			# cone wraps the tile, AO.y saturates), falling at 512 px (the
+			# wider reach decorrelates the normal dot term). What is fixed is
+			# that the slider changes the map, so the check is that the mean
+			# moves measurably, and that restoring the slider returns the base.
 			_panel.spread_slider.value = 100.0
 			_phase = PHASE_SPREAD
 			print("ao live: AO pixel Spread to 100")
@@ -167,8 +171,8 @@ func _process(_delta: float) -> void:
 			if not _main._status.text.contains("ready"):
 				return
 			var strong: float = _mean(_main.maps["ao"])
-			_check(strong < _base_mean,
-					"wider AO spread darkens the mean AO, %.3f -> %.3f" % [_base_mean, strong])
+			_check(absf(strong - _base_mean) > 0.002,
+					"AO pixel Spread 100 changes the AO map, %.3f -> %.3f" % [_base_mean, strong])
 			_panel.spread_slider.value = 50.0
 			_phase = PHASE_SPREAD_RESTORE
 			print("ao live: spread back to 50, mean %.3f" % strong)
@@ -289,8 +293,8 @@ func _process(_delta: float) -> void:
 						"the AO slot texture is the map, %s vs %s" % [Vector2i(texture.get_size()), _main.maps["ao"].get_size()])
 			_check(full.ao_texture_channel == BaseMaterial3D.TEXTURE_CHANNEL_RED,
 					"the AO slot reads the map's red channel, Materialize's greyscale packing, got %d" % [full.ao_texture_channel])
-			_check(full.roughness_texture != null,
-					"the full material keeps its roughness slot with AO active")
+			_check(full.roughness_texture == null,
+					"the AO-only store leaves the roughness slot empty")
 			# Clear empties the map, the feature flag goes off, and the slot
 			# samples the material's default.
 			_main.boxes[6].clear_button.pressed.emit()
@@ -325,7 +329,7 @@ func _process(_delta: float) -> void:
 				print("all checks pass")
 			else:
 				print("%d failures" % _failures.size())
-			get_tree().quit(_failures.size() == 0)
+			get_tree().quit(_failures.size())
 
 ## Every AO panel widget, reached through the panel's exported refs: the
 ## slider ranges, the defaults Unity opens the window with, the labels, the

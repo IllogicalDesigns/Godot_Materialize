@@ -42,8 +42,9 @@ Diffuse, Normal From Height, Metallic From Diffuse and Roughness From Diffuse
 (Unity's Smoothness tool) are ported and running on the GPU**: the stone test
 pattern feeds the source, the panel's sliders regenerate the map, and the generated
 map goes live onto the `MeshInstance3D` preview. "Show full Material" fills a
-`StandardMaterial3D` from the map store: Albedo, Normal, Heightmap, and the
-Roughness map in the Roughness slot (the Metallic slot is still deferred).
+`StandardMaterial3D` from the map store: Albedo, Normal, Heightmap, the Roughness
+map in the Roughness slot, and the AO map in the AO slot through its red channel
+(the Metallic slot is still deferred).
 
 ```
 MapModules/map_module.gd              the module contract (map_type/settings/panel_scene/generate/preview)
@@ -128,6 +129,21 @@ Full Material's Roughness slot through the red channel, "Set as Roughness"
 re-runs the chain, Clear empties the box, Base Roughness 0.2 with no metallic
 map reads 0.202, and the Reveal Slider stays preview-only — all PASS. The
 measured GPU-CPU chain delta is 0.0148.
+
+The fifth GPU run passed for AO: `tests/ao_cpu.tscn` mirrors the cone sweep on
+the stone wall at 32 px (12 passes, 6 samples) — gpu mean 0.724 / cpu 0.725,
+std 0.171 on both; the groove column 0.676 (gpu) / 0.669 (cpu) is darker than
+the plate column 0.682 / 0.688; blend off raises the mean to 0.859 / 0.855,
+AO Power 5 pushes it to 0.313 / 0.315, AO Bias 0.3 lifts it to 0.937 / 0.938
+(the combine pass agrees to 0.002). `tests/ao_live.tscn` drives the panels
+through the shell: the stone wall at 512 opens at mean 0.817, Spread 100
+changes the map (0.813), blend off raises the mean to 0.856, AO Power and Bias
+re-run the combine pass, "Set as AO Map" and Clear cycle the box, and the AO map
+fills the Full Material's AO slot through the red channel — all PASS, 1219
+frames. `tests/ao_probe.tscn` sweeps the cone model at 16 px: blend on gives
+spread 50 → 0.627, 100 → 0.708, 10 → 0.671; blend off gives 0.876 / 0.885 /
+0.707, so the AO.x curve sits at 0.876 on the flat plate and the mean rises
+with blend off.
 
 The app: load a diffuse image (PNG/JPG) or press **Stone Test Pattern**, pick a
 resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool regenerates
@@ -225,9 +241,10 @@ assets/cubemaps/       <- cube maps for the preview lighting (empty, deferred)
 assets/models/         <- preview meshes (the Unity FBX test objects, deferred)
 assets/textures/       <- stock maps (flat white / black / grey / normal, deferred)
 tests/                 <- framework probe + generator tests (height, diffuse, normal,
-                       metallic, roughness) + live preview checks (height, diffuse,
+                       metallic, roughness, ao) + live preview checks (height, diffuse,
                        normal, roughness, ao) + panel fold check + probes (HSL maths,
-                       StandardMaterial3D roughness slots, StandardMaterial3D AO slots)
+                       StandardMaterial3D roughness slots, StandardMaterial3D AO slots,
+                       AO cone sweep)
 ```
 
 Each map lives in its own `MapModules/<map>Map/` folder once ported; the roadmap
@@ -358,6 +375,9 @@ DISPLAY=:1 godot --path . res://tests/full_live.tscn      # "Show full Material"
 godot --headless --path . res://tests/roughness_cpu.tscn  # CPU mirror of the Roughness blur + smoothness pass, ~1 min at 512, no GPU
 DISPLAY=:1 godot --path . res://tests/roughness_live.tscn # live Roughness chain at 512, asserted against the CPU mirror
 godot --headless --path . res://tests/roughness_probe.tscn # StandardMaterial3D roughness slot probe, no GPU
+DISPLAY=:1 godot --path . res://tests/ao_cpu.tscn         # CPU mirror of the AO cone sweep, 32 px at 12 passes, 6 samples
+DISPLAY=:1 godot --path . res://tests/ao_live.tscn        # live AO chain at 512, 100 passes, ~1200 frames
+DISPLAY=:1 godot --path . res://tests/ao_probe.tscn       # AO cone sweep probe: spread and blend directions at 16 px
 ```
 
 The live preview test prints the map statistics and the panel chain checks; it also
