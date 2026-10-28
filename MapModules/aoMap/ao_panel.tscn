@@ -1,0 +1,152 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://MapModules/aoMap/ao_panel.gd" id="1_panel"]
+
+[node name="AOPanel" type="VBoxContainer" node_paths=PackedStringArray("spread_slider", "spread_label", "depth_slider", "depth_label", "blend_slider", "blend_label", "contrast_slider", "contrast_label", "bias_slider", "bias_label", "set_button")]
+custom_minimum_size = Vector2(340, 0)
+script = ExtResource("1_panel")
+spread_slider = NodePath("ScrollContainer/Column/SpreadGroup/Spread")
+spread_label = NodePath("ScrollContainer/Column/SpreadGroup/SpreadVal")
+depth_slider = NodePath("ScrollContainer/Column/DepthGroup/Depth")
+depth_label = NodePath("ScrollContainer/Column/DepthGroup/DepthVal")
+blend_slider = NodePath("ScrollContainer/Column/BlendGroup/Blend")
+blend_label = NodePath("ScrollContainer/Column/BlendGroup/BlendVal")
+contrast_slider = NodePath("ScrollContainer/Column/ContrastGroup/Contrast")
+contrast_label = NodePath("ScrollContainer/Column/ContrastGroup/ContrastVal")
+bias_slider = NodePath("ScrollContainer/Column/BiasGroup/Bias")
+bias_label = NodePath("ScrollContainer/Column/BiasGroup/BiasVal")
+set_button = NodePath("ScrollContainer/Column/SetButton")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Normal + Depth to AO"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(500, 500)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Column" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+
+[node name="SpreadGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="SpreadTitle" type="Label" parent="ScrollContainer/Column/SpreadGroup"]
+layout_mode = 2
+text = "AO pixel Spread"
+vertical_alignment = 1
+
+[node name="Spread" type="HSlider" parent="ScrollContainer/Column/SpreadGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 10.0
+max_value = 100.0
+step = 1.0
+value = 50.0
+
+[node name="SpreadVal" type="Label" parent="ScrollContainer/Column/SpreadGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "50.00"
+horizontal_alignment = 2
+
+[node name="DepthGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="DepthTitle" type="Label" parent="ScrollContainer/Column/DepthGroup"]
+layout_mode = 2
+text = "Pixel Depth"
+vertical_alignment = 1
+
+[node name="Depth" type="HSlider" parent="ScrollContainer/Column/DepthGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 256.0
+step = 1.0
+value = 100.0
+
+[node name="DepthVal" type="Label" parent="ScrollContainer/Column/DepthGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "100.00"
+horizontal_alignment = 2
+
+[node name="BlendGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="BlendTitle" type="Label" parent="ScrollContainer/Column/BlendGroup"]
+layout_mode = 2
+text = "Blend Normal AO and Depth AO"
+vertical_alignment = 1
+
+[node name="Blend" type="HSlider" parent="ScrollContainer/Column/BlendGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="BlendVal" type="Label" parent="ScrollContainer/Column/BlendGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="ContrastGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="ContrastTitle" type="Label" parent="ScrollContainer/Column/ContrastGroup"]
+layout_mode = 2
+text = "AO Power"
+vertical_alignment = 1
+
+[node name="Contrast" type="HSlider" parent="ScrollContainer/Column/ContrastGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.1
+max_value = 10.0
+step = 0.01
+value = 1.0
+
+[node name="ContrastVal" type="Label" parent="ScrollContainer/Column/ContrastGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 2
+
+[node name="BiasGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="BiasTitle" type="Label" parent="ScrollContainer/Column/BiasGroup"]
+layout_mode = 2
+text = "AO Bias"
+vertical_alignment = 1
+
+[node name="Bias" type="HSlider" parent="ScrollContainer/Column/BiasGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -1.0
+max_value = 1.0
+step = 0.01
+value = 0.0
+
+[node name="BiasVal" type="Label" parent="ScrollContainer/Column/BiasGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="SetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+text = "Set as AO Map"

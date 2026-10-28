@@ -38,9 +38,12 @@ and a project file (XML) stores every tool's settings plus the map paths.
 ## Current status
 
 The app is laid out like Materialize's window, and **Height From Diffuse, Edit
-Diffuse and Normal From Height are ported and running on the GPU**: the stone test
+Diffuse, Normal From Height, Metallic From Diffuse and Roughness From Diffuse
+(Unity's Smoothness tool) are ported and running on the GPU**: the stone test
 pattern feeds the source, the panel's sliders regenerate the map, and the generated
-map goes live onto the `MeshInstance3D` preview.
+map goes live onto the `MeshInstance3D` preview. "Show full Material" fills a
+`StandardMaterial3D` from the map store: Albedo, Normal, Heightmap, and the
+Roughness map in the Roughness slot (the Metallic slot is still deferred).
 
 ```
 MapModules/map_module.gd              the module contract (map_type/settings/panel_scene/generate/preview)
@@ -62,6 +65,19 @@ MapModules/normalMap/                 the Normal module:
   normal_map_module.gd               the module: `source_map_type()` is "height", and
                                      `set_inputs(maps)` supplies the pristine source for
                                      "Shape from Diffuse"
+MapModules/metallicMap/               the Metallic module:
+  metallic_from_diffuse.gd          settings + generate() coroutine
+  metallic_from_diffuse.gdshader    passes: BLUR / METALLIC (fragMetallic)
+  metallic_panel.tscn + .gd         the tool panel, laid out like MetallicGui.cs
+  metallic_map_module.gd              the module: `set_inputs(maps)` supplies the
+                                     pristine source for " Use Original Diffuse"
+MapModules/roughnessMap/              the Roughness module (Unity's Smoothness tool):
+  roughness_from_diffuse.gd           settings + generate() coroutine
+  roughness_from_diffuse.gdshader     passes: BLUR / ROUGHNESS (fragSmoothness),
+                                     values stored as roughness = 1 - smoothness
+  roughness_panel.tscn + .gd          the tool panel, laid out like SmoothnessGui.cs
+  roughness_map_module.gd             the module: `set_inputs(maps)` reads the metallic
+                                     map the way Unity's `_DefaultMetallicMap` does
 core/blit.gd                          pass framework (SubViewport + quad + ShaderMaterial)
 core/test_pattern.gd                  procedural stone source (no assets needed)
 shaders/mesh_preview.gdshader         the 3D preview material (map + Height Reveal Slider + Diffuse split)
@@ -70,8 +86,9 @@ ui/collapse_group.gd                  foldable container (header row + foldable 
 scenes/main.tscn + scripts/main.gd    the app shell: box row, panel slot, mesh, dialogs, toolbar, roadmap
 scenes/save_panel.tscn                the saving box (file format + Save all maps!)
 tests/                                blit probe, end-to-end height + diffuse tests, CPU references
-                                      (height, diffuse, normal), live preview checks
-                                      (height, diffuse, normal), panel fold check
+                                      (height, diffuse, normal, metallic, roughness), live
+                                      preview checks (height, diffuse, normal, roughness),
+                                      panel fold check
 docs/how_materialize_works.md         algorithm + design notes
 ```
 
@@ -94,14 +111,34 @@ Diffuse Reveal Slider writes `split_reveal` on the mesh material with no pass
 chain, the generation sliders regenerate from the pristine source, "Set as Diffuse"
 re-runs the chain, and Clear restores the source for the split preview — all PASS.
 
+The third GPU run passed for Metallic: `tests/probe_hsl.tscn` measures the GPU's
+HSL maths against the CPU conversion (the probe's `rgb_to_hsl` matches the CPU
+`rgb_to_hsl` to 1e-3), and `tests/metallic_cpu.tscn` mirrors the pass 2 thresholds
+on the stone pattern — mean 0.479, metal mask 0.121, base mask 0.470. The live
+run generates the metallic map from the stone diffuse and puts it on the mesh.
+
+The fourth GPU run passed for Roughness: `tests/roughness_cpu.tscn` mirrors the
+blur and the smoothness pass (stone mean 0.600 stored as roughness, 0.400 in
+smoothness space; the sample, mask-edge, overlay, blur and metallic-coupling
+checks all behave as Unity's pass 2 does), and `tests/roughness_live.tscn`
+drives the panels through the shell: the Metallic window on the wall's brick
+colour gives a metallic map with mean 0.969, the Roughness map mean drops to
+0.312 (Metal Roughness 0.3 pulling the metal regions down), the map fills the
+Full Material's Roughness slot through the red channel, "Set as Roughness"
+re-runs the chain, Clear empties the box, Base Roughness 0.2 with no metallic
+map reads 0.202, and the Reveal Slider stays preview-only — all PASS. The
+measured GPU-CPU chain delta is 0.0148.
+
 The app: load a diffuse image (PNG/JPG) or press **Stone Test Pattern**, pick a
 resolution (512 / 1024 / 2048 / source size), adjust sliders — the tool regenerates
 live (debounced), the map box preview and the mesh update, and **Save Map** writes a
 PNG. Clicking a box's **Create** makes that map active: its panel slots into
-`MapOptionsPanel` and its map goes onto the mesh. Height (1st), Diffuse (2nd) and
-Normal (3rd) are ported, so their Create buttons are live; the unported maps'
-Create buttons are disabled, and the status line names the Unity file each one
-still needs.
+`MapOptionsPanel` and its map goes onto the mesh. Height (1st), Diffuse (2nd),
+Normal (3rd), Metallic (4th), Roughness (5th, Unity's Smoothness tool) and
+AO (6th, Unity's Normal + Depth to AO tool) are
+ported, so their Create buttons are live; the unported maps' (Edge,
+Alignment, Seamless Tiling) Create buttons are disabled, and the status line
+names the Unity file each one still needs.
 Quick Save writes `user://materialize<suffix>.png` (Materialize appends the map
 suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
 `maps["diffuse_original"]` (Unity's `_DiffuseMapOriginal`) beside the edited
@@ -129,6 +166,33 @@ suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
   button opens a sample the user has switched off without writing settings.
   Folded, the panel is 400 x 648 px; open it is 541 x 1450 px. The button labels
   are `+` / `-`, because Godot's fallback font has no arrow glyphs.
+- The blurs are **not** stacked: Unity runs one horizontal and one vertical
+  `fragBlur` pass per radius (Blit_Shader pass 1, `MetallicGui.cs` lines
+  479-514, `SmoothnessGui.cs` lines 770-800), and the port runs the same two
+  passes. Unity's kernel is `cos(i / BlurSamples * PI) * 0.5 + 0.5` over
+  `±BlurSamples` taps; the port's is the same window with `radius = blur_size`,
+  so `BlurSize` 0 means the sharp source in both tools.
+- The Roughness tool's numbers are **inverted** relative to Materialize's GUI.
+  Unity's slider set speaks smoothness (1.0 = mirror, 0.0 = fully rough), and
+  its defaults are Metal 0.7 / Base 0.1 / Sample1 0.5 / Sample2 0.3; the port
+  stores roughness, the value Godot's `StandardMaterial3D` wants, so the
+  defaults are Metal 0.3 / Base 0.9 / Sample1 0.5 / Sample2 0.7, and the map
+  writes `1 - smoothness` into the red channel.
+- The Smoothness GUI shows **3** colour samples; `Blit_Smoothness.shader` pass 2
+  uses **2**. The port ships 2, so there is no dead third control, and the
+  faders are labelled `Hue` / `Sat` / `Lum` / `Low` / `High` / `Rough` (Unity's
+  `SampleNSmoothness` slider, with the inverted value).
+- The metallic map is the **lerp weight** towards `MetalSmoothness`, not an
+  overlay multiplier: Unity's pass 2 lerps base → sample2 → sample1 → metal, and
+  the overlay multiplier is the high pass grey `clamp(overlay_grey * BlurOverlay
+  + 1, 0, 10)` applied after the chain (Unity line 126, `BlurOverlay` default
+  3.0). Unity has no "Use Metal" toggle, and its `_DefaultMetallicMap` field is
+  never assigned, so a missing metallic map means the chain never reaches the
+  metal level; the port reads `maps["metallic"]` through `set_inputs(maps)` and
+  substitutes a flat black map when the metallic map is missing or not the
+  working resolution, the same effect.
+- The Roughness Reveal Slider is preview-only (it splits the mesh preview like
+  the Diffuse one), so it never regenerates the map.
 - BMP/TGA/TIFF export fall back to PNG with a status note: Unity used
   `FreeImage.dll`, which has no Godot equivalent.
 - A toolbar row (Load Diffuse, Stone Test Pattern, Resolution, Generate, Save Map,
@@ -148,6 +212,11 @@ MapModules/            one folder per texture map (the module contract in map_mo
   diffuseMap/          generator + shader + panel + module: the second ported tool
   normalMap/           generator + shader + panel + module: the third ported tool,
                        the first one that reads another generated map (the height map)
+  metallicMap/         generator + shader + panel + module: the fourth ported tool,
+                       reading the pristine source for " Use Original Diffuse"
+  roughnessMap/        generator + shader + panel + module: the fifth ported tool,
+                       reading the metallic map through `set_inputs(maps)`, the
+                       port of Unity's Smoothness tool
 core/                <- shared framework: blit.gd, test_pattern.gd
 shaders/             <- app-level shaders (the preview material), not per-map generators
 ui/                  <- map_box.gd + collapse_group.gd (generic widgets, so they are not per-map)
@@ -155,16 +224,23 @@ docs/                <- how_materialize_works.md
 assets/cubemaps/       <- cube maps for the preview lighting (empty, deferred)
 assets/models/         <- preview meshes (the Unity FBX test objects, deferred)
 assets/textures/       <- stock maps (flat white / black / grey / normal, deferred)
-tests/                 <- framework probe + generator tests + live preview check + panel fold check
+tests/                 <- framework probe + generator tests (height, diffuse, normal,
+                       metallic, roughness) + live preview checks (height, diffuse,
+                       normal, roughness, ao) + panel fold check + probes (HSL maths,
+                       StandardMaterial3D roughness slots, StandardMaterial3D AO slots)
 ```
 
 Each map lives in its own `MapModules/<map>Map/` folder once ported; the roadmap
 print in `scripts/main.gd` lists which Unity file each one comes from. Height
-(1st), Diffuse (2nd) and Normal (3rd) are ported; Metallic, Smoothness, Edge, AO
-are next. Diffuse uses the module contract plus two preview hooks
-(`source_map_type()`, `preview_split()`), and Normal adds `set_inputs(maps)` to
-read the pristine source for "Shape from Diffuse"; all are described in
-`docs/how_materialize_works.md`.
+(1st), Diffuse (2nd), Normal (3rd), Metallic (4th), Roughness (5th, Unity's
+Smoothness tool stored as roughness) and AO (6th, Unity's Normal + Depth to AO
+tool, reading the normal map) are ported; Edge, Alignment and Seamless Tiling
+are next. Diffuse uses the module contract plus two preview
+hooks (`source_map_type()`, `preview_split()`), Normal adds `set_inputs(maps)`
+to read the pristine source for "Shape from Diffuse", Metallic reads the same
+pristine source for " Use Original Diffuse", and Roughness reads the metallic
+map through `set_inputs(maps)` the way Unity's `_DefaultMetallicMap` does; all
+are described in `docs/how_materialize_works.md`.
 
 ## Unity -> Godot mapping
 
@@ -217,11 +293,14 @@ One tool per commit, in dependency order (later tools consume earlier outputs):
 1. **Blit framework** — `core/blit.gd`. Done, validated on the GPU by the probe.
 2. **Height From Diffuse** — ported, wired into the app, panel and live mesh output
    validated on the GPU. Done.
-3. Normal From Height
+3. **Normal From Height** — ported third. Done.
 4. Edge From Normal
-5. AO From Normal
-6. Metallic
-7. Smoothness
+5. **AO From Normal** — ported sixth (out of list order): it reads the Normal
+   map, so it came in right after the Normal and Height chains were live. Done.
+6. **Metallic** — ported fourth (out of list order). Done.
+7. **Smoothness** — ported fifth as **Roughness** (the map is stored as
+   roughness, `1 - smoothness`, so it drops straight into
+   `StandardMaterial3D.roughness_texture`). Done.
 8. **Edit Diffuse** — ported second (out of list order): its passes only read the
    source image, so it came in right after the first module. Done.
 9. Alignment
@@ -238,13 +317,16 @@ render from the Unity tool.
 
 - "Use Normal as input" for Height From Diffuse (Unity's `ProcessNormal()`,
   Spread/SpreadBoost) needs a normal map source → comes with Normal From Height.
-- Unity stacks the Diffuse blurs as `2 * ceil(2 * blurSize)` narrow passes
-  (Blit_Shader pass 1, run per axis). Each Godot pass costs a frame, so the port
-  runs one horizontal and one vertical pass per map with the full radius and the
-  same raised-cosine window. The spread and the kernel shape match; the stacked
-  passes' Gaussian tail is approximated. The CPU reference in
-  `tests/diffuse_cpu.gd` runs the same single-pair kernel, so the GPU-vs-CPU
-  check measures the chain, not the stacking difference.
+- The Diffuse, Metallic and Smoothness blurs all run one horizontal and one
+  vertical `fragBlur` pass per radius in Unity (Blit_Shader pass 1), and the port
+  runs the same pair with the same raised-cosine window. One nuance: Unity's
+  Diffuse average blur sets `_BlurSpread` to `AvgColorBlurSize / 5` (line 432),
+  so its taps sit 10 px apart at the default 50 and its span is wider than the
+  port's; the port keeps spread 1.0. The CPU references
+  (`tests/diffuse_cpu.gd`, `tests/metallic_cpu.gd`, `tests/roughness_cpu.gd`)
+  run the same kernel, so the GPU-vs-CPU checks measure the chain. The Height
+  tool's six-level pyramid is the one place Unity blits two blur chains
+  (`_BlurSamples` 4 then 32, `HeightFromDiffuseGui.cs` lines 1143, 1197).
 - Unity's average map is computed at 256²; the port runs it at full resolution.
   Full resolution is a finer reference and avoids viewport resizing mid-chain.
 - Unity shaders use `_MainTex_Tint` style multi-sample blur chains; Godot does
@@ -270,6 +352,12 @@ DISPLAY=:1 godot --path . res://tests/diffuse_live.tscn  # live split-screen pre
 godot --headless --path . res://tests/normal_cpu.tscn    # CPU mirror of the Normal pass chain, ~3 min at 512, no GPU
 DISPLAY=:1 godot --path . res://tests/normal_live.tscn   # live Normal chain at 512, asserted against the CPU mirror
 godot --headless --path . res://tests/panel_fold.tscn     # colour sample fold layout check, no GPU
+godot --headless --path . res://tests/metallic_cpu.tscn   # CPU mirror of the Metallic blur + pass 2 thresholds, no GPU
+DISPLAY=:1 godot --path . res://tests/probe_hsl.tscn      # GPU rgb_to_hsl vs CPU rgb_to_hsl probe (the Metallic masks)
+DISPLAY=:1 godot --path . res://tests/full_live.tscn      # "Show full Material" chain: Albedo, Normal, Heightmap slots on one material
+godot --headless --path . res://tests/roughness_cpu.tscn  # CPU mirror of the Roughness blur + smoothness pass, ~1 min at 512, no GPU
+DISPLAY=:1 godot --path . res://tests/roughness_live.tscn # live Roughness chain at 512, asserted against the CPU mirror
+godot --headless --path . res://tests/roughness_probe.tscn # StandardMaterial3D roughness slot probe, no GPU
 ```
 
 The live preview test prints the map statistics and the panel chain checks; it also

@@ -9,8 +9,9 @@ more `Blit_*.shader` fragment programs.
 
 This document explains the algorithm as the Unity source does it, and how the
 Godot port (`MapModules/`, `core/`, `shaders/`, `ui/`, `scenes/`) reproduces it.
-The first ported tool is Height From Diffuse, in `MapModules/heightMap/`; the same
-pattern applies to every other tool.
+The ported tools are Height From Diffuse, Edit Diffuse, Normal From Height,
+Metallic From Diffuse and Roughness From Diffuse (Unity's Smoothness tool), each
+in its own `MapModules/<map>Map/` folder; the same pattern applies to every tool.
 
 ## 1. The blit architecture
 
@@ -187,18 +188,24 @@ top of the local colour detail. The tool removes the ramp, keeps the detail, and
 puts the source hue back so the map does not read as flat grey.
 
 Stage 1 - two blurs. Unity runs Blit_Shader pass 1 as a separable raised-cosine
-blur, stacked `2 * ceil(2 * blurSize)` times with alternating directions:
+blur, one horizontal and one vertical pass per radius (`EditDiffuseGui.cs` lines
+417-432), and the port runs the same pair:
 
-- **Overlay blur** (`Overlay Blur Size`, 5..100, default 20): the blurred copy.
-  `overlay = mainTex - blurTex` is the detail the tool re-amplifies.
+- **Overlay blur** (`Overlay Blur Size`, 5..100, default 20):
+  `_BlurSamples` is the size and `_BlurSpread` is 1.0, so the taps step by one
+  pixel across `±size`. `overlay = mainTex - blurTex` is the detail the tool
+  re-amplifies. The port's window is the same `cos(i / radius * PI) * 0.5 + 0.5`
+  over `±radius` taps.
 - **Average colour** (`Average Color Blur Size`, 5..100, default 50): the wide
   blur, the lighting ramp `fragEditDiffuse` removes. The average stays in colour
-  (Unity blurs the RGB map, not grey).
-
-Each Godot pass costs a frame, so the port runs one horizontal and one vertical
-pass per map with the full radius and the same raised-cosine window. The CPU
-reference (`tests/diffuse_cpu.gd`) runs the same kernel, so the GPU-vs-CPU check
-measures the chain, not the stacking difference.
+  (Unity blurs the RGB map, not grey). Unity's deviation is here:
+  `_BlurSpread` is `AvgColorBlurSize / 5` (line 432), so its taps are 10 pixels
+  apart at the default 50 and the sampling span is far wider than the port's.
+  The port carries the radius in the shader with spread 1.0, so its average map
+  is the raised-cosine window at the slider size, a narrower span than Unity's
+  spread-out taps. The CPU reference (`tests/diffuse_cpu.gd`) runs the same
+  kernel the GPU runs, so the GPU-vs-CPU check measures the chain, not the
+  spread difference.
 
 Stage 2 - spot removal. `avgLum = dot(mainTex, GREY)`; `lightMask` is a smoothstep
 from `1 - HotSpot` up, `darkMask` a smoothstep below `DarkSpot`; the pixel is
@@ -271,7 +278,10 @@ the right holds the file format list (`BMP` `JPG` `PNG` `TGA` `TIFF`) and
 `Windowed`/`Full Screen`, `Make Suggestion` and `Hide Gui`/`Show Gui` sit in the
 corners. Materialize draws these with `GUI.Box`, `GUI.Label`, `GUI.Button`; Godot
 draws them with `PanelContainer`, `Label`, `Button`, in the same order
-(Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO).
+(Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO). The Smoothness box is
+titled `Roughness Map`: the port stores the map as roughness, so the box name
+follows the engine slot it fills (`StandardMaterial3D.roughness_texture`), and
+the window's numbers are roughness too (`1 - smoothness`).
 
 `MapModules/heightMap/height_panel.tscn` + `.gd` is the Height tool panel, laid
 out like `HeightFromDiffuseGui.cs`: the source row (`Diffuse` / `Original
@@ -393,7 +403,249 @@ The Normal Reveal Slider blends the shaded preview towards the raw map colours i
 `shaders/mesh_preview.gdshader` (`is_normal` mode), so dragging it costs no pass,
 exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
 
-## 7. Skipped / deferred in this commit
+## 7. Metallic From Diffuse
+
+Unity's `MetallicGui.cs` + `Assets/Shaders/Resources/Blit_Metallic.shader`.
+The tool generates from the **diffuse map**, and the window's source row picks
+which one: " Use Edited Diffuse" reads `_DiffuseMap`, " Use Original Diffuse"
+reads `_DiffuseMapOriginal` (the pristine source), and Unity forces the pristine
+source when no edited map exists (`MetallicGui.cs` lines 406-408). The port takes
+the map store through `set_inputs(maps)` and keys the pristine source as
+`maps["diffuse_original"]`, so the row selects inside the generator.
+
+1. **blur** (`BlurSize`): one raised-cosine blur of the selected diffuse. The
+   colour distance is measured on this blurred map, so the mask follows the
+   region a pixel belongs to and survives noise. `BlurSize` 0 skips the blur and
+   uses the sharp map (Unity copies the source into `_BlurMap` at 0,
+   `MetallicGui.cs` lines 493-495).
+2. **overlay blur** (`OverlayBlurSize`, 10..100): a second blur. Subtracting it
+   from the sharp source leaves the high-frequency detail — the "High Pass
+   Overlay" — so the mask follows the bumps and stops at joints.
+3. **metallic** (`fragMetallic`, Blit_Metallic pass 0): the high pass overlay
+   (`source - overlay_blur`, seen as grey), the colour distance from the picked
+   metal colour measured on the blur map (`hue_dif` is the smallest of the three
+   circular hue distances `* 2.0`, `sat_dif` and `lum_dif` are `1 - abs(diff)`),
+   the weighted sum `hue_dif * Hue + sat_dif * Sat + lum_dif * Lum` divided by
+   the weight total, `smoothstep(Low, High)`, then `Final Contrast` /
+   `Final Bias`, then the mask is multiplied by
+   `clamp(overlay_grey * BlurOverlay + 1, 0, 10)` and saturated. The output is
+   a greyscale metallic mask in the red/green/blue channels.
+
+Deviations: none in the pass structure — Unity runs one horizontal and one
+vertical `fragBlur` pass per radius (`MetallicGui.cs` lines 479-514), and the
+port runs the same pair with the same raised-cosine window
+(`cos(i / radius * PI) * 0.5 + 0.5` over `±radius` taps). Unity divides the
+colour distance by the raw weight sum; all three faders at 0 is a legal slider
+state, so the port clamps the divisor.
+
+The port: `MapModules/metallicMap/metallic_from_diffuse.gdshader` (PASS_BLUR /
+PASS_METALLIC), `metallic_from_diffuse.gd` (the settings dict with
+`MetallicSettings`' defaults, `MetallicGui.cs` lines 5-87: metal colour black,
+Hue 1.0 / Sat 0.5 / Lum 0.2, Low 0.0 / High 1.0, BlurSize 0,
+OverlayBlurSize 30, BlurOverlay 1, Contrast 1, Bias 0), `metallic_panel.tscn` +
+`.gd` laid out like the Unity window, and `metallic_map_module.gd` (source key
+`diffuse`, `preview_split()` true, because `Metallic_Preview.shader` lerps the
+diffuse into the mask at `_Slider` along `UV.x`).
+
+Verified: `tests/probe_hsl.tscn` runs the shader's `rgb_to_hsl` on the GPU and
+the GDScript conversion on the CPU over the stone pattern — the two agree to
+1e-3 — and `tests/metallic_cpu.tscn` mirrors the chain (stone mean 0.479, metal
+mask 0.121, base mask 0.470, and the monotonicity checks on the overlay gain).
+
+## 8. Roughness From Diffuse (Unity's Smoothness tool)
+
+Unity's `SmoothnessGui.cs` + `Assets/Shaders/Resources/Blit_Smoothness.shader`.
+The tool generates from the diffuse map (the same edited / pristine radio row
+the Metallic window has) and from the **metallic map**. Pass 2
+(`fragSmoothness`, lines 81-135) works in **smoothness space**: 1.0 is a mirror,
+0.0 is fully rough.
+
+1. **blur** (`BlurSize`): one raised-cosine blur of the selected diffuse, used
+   for the sample masks. `BlurSize` 0 gives the sharp source, so `BlurSize`
+   steers how large an area a colour sample covers.
+2. **metal mask**: `_MetallicTex.x` — the metallic map — is the lerp weight that
+   pulls the level to `MetalSmoothness`. Unity has **no** "Use Metal" toggle:
+   pass 2 takes `_MetallicMap` when one exists and its `_DefaultMetallicMap`
+   field otherwise, a field `SmoothnessGui.cs` never assigns (lines 680-684),
+   so with no metallic map the weight is 0 and the chain never reaches
+   `MetalSmoothness` — the map is base smoothness plus the sample masks. The
+   port reads `maps["metallic"]` through `set_inputs(maps)` and substitutes a
+   flat black map when the metallic map is missing or not the working
+   resolution, the same effect as Unity's unassigned field.
+3. **overlay**: the high pass grey (`source - overlay_blur`, seen as
+   `GREY = vec3(0.3, 0.5, 0.2)`) drives `clamp(overlay_grey * BlurOverlay + 1,
+   0, 10)`, which is applied to the level **after** the chain and the contrast /
+   bias, as a multiplier (Unity line 126). `BlurOverlay` defaults to 3.0, so a
+   strongly textured source can push the level up to 10x, saturating to a
+   mirror.
+4. **the smoothness chain**, in Unity's order (lines 120-123): start at
+   `BaseSmoothness`, lerp towards `Sample2Smoothness` by `sample2Mask`, then
+   towards `Sample1Smoothness` by `sample1Mask`, then towards `MetalSmoothness`
+   by `metalMask`. Each sample's mask is the weighted colour similarity of the
+   blur map against the swatch: `hue_dif` is the smallest of the three circular
+   hue distances `* 2.0`, `sat_dif` and `lum_dif` are `1 - abs(diff)`, the three
+   are weighted by `Hue` / `Sat` / `Lum`, divided by the weight total (Unity
+   divides by the raw sum; all three faders at 0 is a legal slider state, so the
+   port clamps the divisor), then `smoothstep(Low, High)`. `Isolate Mask` paints
+   the mask itself as the level — Unity's lines 129-135, `finalSmoothness =
+   sampleNMask`.
+5. **the map**: Unity writes smoothness, so a preview at 1.0 reads as a mirror.
+
+The port stores **roughness** = `1 - smoothness`, so every Unity number in the
+window is inverted: MetalSmoothness 0.7 → `metal_roughness` 0.3,
+BaseSmoothness 0.1 → `base_roughness` 0.9, Sample1Smoothness 0.5 → 0.5,
+Sample2Smoothness 0.3 → `sample2_roughness` 0.7, and the final write is
+`COLOR = 1 - final_smoothness`. The point is that the map drops straight into
+Godot's PBR material: "Show full Material" fills
+`StandardMaterial3D.roughness_texture` and sets
+`roughness_texture_channel = TEXTURE_CHANNEL_RED`, because Unity's DNMST preview
+reads its smoothness texture from the red channel (`DNMST.shader` line 121,
+`tex2D(_SmoothnessMap, UV).x`). The Metallic slot is not wired yet; when it is,
+`metallic_texture` + `METALLIC_TEXTURE_ALBEDO_CHANNEL_A` is the slot the port
+will use.
+
+Two structural differences from the Unity window, both deliberate:
+- The GUI shows **3** colour samples; pass 2 uses **2**. The port ships 2, so
+  there is no dead third control, and the faders read
+  faders read `Hue` / `Sat` / `Lum` / `Low` / `High` / `Rough` (Unity's
+  `SampleNSmoothness` slider, with the inverted value).
+- Unity has **no** "Use Metal" toggle: the metallic map alone decides how much
+  metal shows. The port matches, and the Metallic module's presence is the
+  switch — with no metallic map, Unity's flat black `_DefaultMetallicMap`
+  behaviour is the flat black fallback.
+
+The port: `MapModules/roughnessMap/roughness_from_diffuse.gdshader` (PASS_BLUR /
+PASS_ROUGHNESS, the same `GREY = vec3(0.3, 0.5, 0.2)` and `rgb_to_hsl` the
+Metallic pass uses), `roughness_from_diffuse.gd` (the settings dict, inverted
+defaults, the generate coroutine: radio row source → blur → overlay → smoothness
+chain → invert), `roughness_panel.tscn` + `.gd` laid out like `SmoothnessGui.cs`
+in Unity's window order: the source radio row, the Roughness Reveal Slider,
+Metal Roughness, the two foldable colour samples (Use / Isolate / Pick Colour
+and the Hue / Sat / Lum / Low / High / Rough faders, Base Roughness last among
+the level rows), Blur Size, Overlay Blur Size, High Pass Overlay, Final
+Contrast, Final Bias, "Set as Roughness". The sample bodies are
+`CollapseGroup`s, so a sample folds when its Use box goes off, as the Height
+panel does. `roughness_map_module.gd` gives `map_type()` "roughness", the
+`_RoughnessMap` save suffix, `set_inputs` reading `maps["metallic"]`, and
+`preview_split()` true.
+
+Verified: `tests/roughness_cpu.tscn` mirrors the chain (the GPU-CPU chain delta
+on the stone pattern is 0.0148; stone mean 0.600 stored as roughness, 0.400 as
+smoothness; mask edges, overlay monotonicity, the blur size effect, and the
+metallic coupling all behave as Unity's pass 2 does), and
+`tests/roughness_live.tscn` drives the panel through the shell: stone mean
+0.312, a brick sample (red / 100% saturation / 50% roughness, 0.4 saturation
+window) pulls its pixels to 0.677, the Full Material's Roughness slot and red
+channel fill, "Set as Roughness" re-runs, Clear empties the map, and the Reveal
+Slider moves only the seam.
+
+## 9. AO From Normal (Materialize's Normal + Depth to AO tool)
+
+Unity's `AOFromNormalGui.cs` + `Assets/Shaders/Resources/Blit_Shader.shader`
+pass 7 (`fragAO`, lines 344-415) and pass 8 (`fragCombineAO`, lines 417-432),
+the pair `ProcessNormalDepth()` + `ProcessAO()` run (lines 289-338, 256-287).
+The window is "Normal + Depth to AO", 300 x 280 px, and the tool is the one
+that does **not** read the diffuse: the pass reads the **Normal map** as its
+source (`_MainTex`, the AO blit line 323 blits `_NormalMap` straight) and the
+**Height map** for its depth term (`_HeightTex`; `InitializeTextures` prefers
+`_HDHeightMap` over `_HeightMap`, lines 304-310).
+
+The window, top to bottom (`AOFromNormalGui.cs` lines 173-190, `AOSettings`
+defaults lines 35-53):
+
+1. **AO pixel Spread** (10..100, default 50): the ray length in pixels.
+2. **Pixel Depth** (0..256, default 100): how steep a height step counts.
+3. **Blend Normal AO and Depth AO** (0..1, default 1): how much of the depth AO
+   shows. Unity opens the window with 1 when a height map exists and 0 when it
+   does not (`InitializeSettings`, lines 108-114), because its flat default
+   height reads fully occluded, so the depth term has nothing to contribute.
+4. **AO Power** (0.1..10, default 1) and **AO Bias** (-1..1, default 0): the
+   final grade. Unity applies the grade to the preview material every frame
+   while dragging (lines 159-161) and bakes it in pass 8 at Set time.
+
+Unity has **no** reveal slider in this window, so the AO panel has no
+`preview_changed` signal and the mesh preview is the map plain.
+
+**The accumulation.** Unity runs pass 7 99 times (`for( int i = 1; i < 100;
+i++ )`, line 318) with `progress = i / 100` and `blend_amount = 1 / i`. The
+pass sweeps the ray direction a full circle over the 99 passes, and each pass
+casts 50 samples along the ray (`int AOSamples = 50`, fragAO line 361):
+
+- sample `p = i / 50` (Unity's sample index divided by the count), the sample
+  offset `direction * Spread * p` plus a two-channel hash jitter scaled by `p *
+  0.1`, the sample pixel `uv + pixelSize * offset` (fragAO lines 378-382),
+- the **normal term**: `dot(normal_sample, direction) * sqrt(1 - p)`, the
+  weighted mean over the samples — the ray tilting back towards the surface is
+  the occlusion the normal map reads, and the far samples matter least,
+- the **depth term**: the sample position in 3D,
+  `(direction.xy * Spread * p, (sample_height - main_height) * Depth)`, its
+  `dot` with straight-up, the strongest occlusion wins the pass, `saturate`d
+  against the distance,
+- the pass lerps its AO.x / AO.y into the blend texture (`_BlendTex`) at
+  `1 / i`, so the accumulator ends up a running mean of ~100 directions, and
+  AO.y is written inverted (`1 - occlusion`), the light side.
+
+Pass 8 lerps the two AO channels at **Blend**, adds **Bias**, raises to the
+power of **Power**, saturates.
+
+**The port.** `MapModules/aoMap/ao_from_normal.gdshader` (PASS_AO = 1,
+PASS_COMBINE = 2, the pair mirroring Unity's pass 7 / pass 8) with
+`ao_from_normal.gd` as the driver: the 99-pass accumulation loop, the blend /
+power / bias combine, the settings dict with `AOSettings`' defaults, and the
+flat normal / flat height fallbacks Unity's `InitializeTextures` opens with
+(`defaultNormal` is flat_normal.tga, the port's `Color(0.5, 0.5, 1.0)`;
+`defaultHeight` is flat_grey.tga, the port's `Blit.flat(size, 0.5)`). Unity
+ping-pongs the accumulator through a copy blit (lines 323-324); the port keeps
+one `Image` and feeds it back as the `accumulator` sampler, the same
+accumulation with one pass per iteration.
+
+**UV mirroring, the frame conversion the port needs:** Godot's UV points down,
+Unity's up, so the ray direction, the sample offsets, and the stored normal's
+Y component are all negated. Unity's default `_FlipNormalY == 0` mirror (fragAO
+lines 350-353) becomes this conversion, so the port reads its signed normal raw.
+
+**Deviations, all deliberate:**
+- Unity enables the box's Create with a Normal map **or** a Height map (line
+  1034); the port gates Create on the **Normal map alone**: the shell runs every
+  tool from its `source_map_type()` map, so a height-only Create has no source
+  map to run from.
+- Unity applies AO Power, AO Bias and the blend to the preview material every
+  frame while dragging and bakes them only at Set time; the port bakes the grade
+  inside pass 2, so the shell's debounce re-runs the combine pass on every
+  settle, the way the Metallic panel behaves.
+- `pow()` of a negative base is undefined in GLSL, so the port clamps to 0
+  before the power (Unity's bias can push the value negative).
+- Unity seeds the ray jitter from `_Time.y` (fragAO line 362), a per-frame clock
+  Godot has no equivalent of; the start offset is computed and never read by the
+  pass, so the port drops it.
+- Unity prefers `_HDHeightMap` over `_HeightMap`; the port has one height map,
+  so that map is the depth input.
+- The ray hash decorrelates between the CPU and the GPU (the GPU's `sin`
+  argument reduction at ~23000 differs from `sin` on CPU doubles), so the
+  CPU reference compares **aggregate stats**, not per-pixel values: the mean,
+  the spread, and the groove-vs-plate column ordering.
+
+**The panel:** `MapModules/aoMap/ao_panel.gd` + `ao_panel.tscn`, laid out like
+Unity's window: the title "Normal + Depth to AO", the five rows (AO pixel
+Spread, Pixel Depth, Blend Normal AO and Depth AO, AO Power, AO Bias), and
+"Set as AO Map". Every widget is an `@export` assigned in the Inspector.
+`ao_map_module.gd` gives `map_type()` "ao", `map_title()` "AO Map", the
+`_ao` save suffix, `source_map_type()` "normal", `set_inputs(maps)` reading
+`maps["height"]` for the depth term, and `create_available(maps)` on the normal
+map.
+
+**The full material's AO slot:** "Show full Material" fills
+`StandardMaterial3D.ao_texture` + `ao_texture_channel = TEXTURE_CHANNEL_RED`
+and switches the feature flag `ao_enabled` on with the map, off when the map
+is cleared — the engine probe (`tests/ao_probe.tscn`) reports the properties
+this engine version has (`ao_enabled`, `ao_light_affect`, `ao_texture`,
+`ao_on_uv2`, `ao_texture_channel`). Unity's AO preview
+(`AO_From_Normal_Preview.shader`) multiplies the AO map into the lit colour on
+the test object, which is what the engine's AO slot does.
+
+Verified: TBD by the ao_cpu + ao_live runs.
+
+## 10. Skipped / deferred in this commit
 
 - **"Use Normal as input"** for the height tool (Unity's `ProcessNormal()` and
   the Spread / SpreadBoost normal path, `_HeightFromNormal`). Normal From Height
@@ -406,7 +658,10 @@ exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
   seam for the Diffuse Reveal Slider, so dragging either slider costs no pass. Materialize renders every map on a test object with the DNMST preview
   shader and cubemap lighting; the port applies one map at a time with a plain
   `shader_type spatial` material, so DNMST, the cubemap cycling (`next cube map`)
-  and the FBX test meshes are still deferred.
+  and the FBX test meshes are still deferred. "Show full Material" fills four
+  `StandardMaterial3D` slots (Albedo, Normal, Heightmap, Roughness); the Metallic
+  slot (`metallic_texture` + `METALLIC_TEXTURE_ALBEDO_CHANNEL_A`) is the next one
+  to wire, and `tests/full_live.tscn` grows its assertion when it is.
 - **Export formats**: Godot saves PNG, JPG, WebP. BMP / TIFF / TGA need a
   custom writer, so the saving box writes PNG and the status line says so. Unity
   used `FreeImage.dll` for those formats.
@@ -416,7 +671,7 @@ exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
   need PNG conversion. A procedural stone test pattern (`core/test_pattern.gd`)
   stands in for a source image.
 
-## 8. Files in the port
+## 11. Files in the port
 
 - `MapModules/map_module.gd` — the module contract, shared by every map module.
 - `MapModules/heightMap/height_from_diffuse.gdshader` — passes 0 SAMPLE, 1 BLUR,
@@ -456,6 +711,90 @@ exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
 - `MapModules/normalMap/normal_map_module.gd` — binds the generator and the panel
   to the module contract, reads the height map as its source, and takes the map
   store through `set_inputs` for "Shape from Diffuse".
+- `MapModules/metallicMap/metallic_from_diffuse.gdshader` — pass 1 BLUR
+  (raised-cosine, used twice: the comparison blur, then the overlay blur), pass 2
+  METALLIC (`fragMetallic`: hue / sat / lum distance from the metal colour,
+  smoothstep mask, high pass overlay, contrast, bias).
+- `MapModules/metallicMap/metallic_from_diffuse.gd` — settings dict with
+  Materialize's defaults, the generate coroutine (blur → overlay blur →
+  fragMetallic), the edited / pristine source row.
+- `MapModules/metallicMap/metallic_panel.gd` + `metallic_panel.tscn` — the
+  Metallic tool panel, laid out like `MetallicGui.cs` in window order: the source
+  radio row, the Metalic Reveal Slider, the Metal Colour swatch + Pick Colour,
+  the Hue / Sat / Lum / Low / High faders, Blur Size, Overlay Blur Size, High
+  Pass Overlay, Final Contrast, Final Bias, "Set as Metallic".
+- `MapModules/metallicMap/metallic_map_module.gd` — binds the generator and the
+  panel, takes the map store through `set_inputs` for " Use Original Diffuse",
+  and splits the mesh preview like Unity's `Metallic_Preview.shader`.
+- `MapModules/roughnessMap/roughness_from_diffuse.gdshader` — pass 1 BLUR,
+  pass 2 ROUGHNESS (`fragSmoothness`: the smoothness chain in smoothness space,
+  the metallic-driven overlay, the isolate override, and the `1 - smoothness`
+  write).
+- `MapModules/roughnessMap/roughness_from_diffuse.gd` — settings dict with the
+  inverted defaults, the generate coroutine (source row → blur → overlay →
+  smoothness chain), the metallic coupling through the map store.
+- `MapModules/roughnessMap/roughness_panel.gd` + `roughness_panel.tscn` — the
+  Roughness tool panel, laid out like `SmoothnessGui.cs`: Roughness Reveal
+  Slider, source row, Metal Roughness, Base Roughness, two foldable colour
+  samples (Use / Isolate / Pick Colour / Hue / Sat / Lum / Low / High /
+  Roughness), Blur Size, Overlay Blur Size, High Pass Overlay, Final Contrast,
+  Final Bias, "Set as Roughness".
+- `MapModules/roughnessMap/roughness_map_module.gd` — binds the generator and
+  the panel, `set_inputs` reads `maps["metallic"]` the way Unity's
+  `_MetallicTex` does, and the split preview follows the Reveal Slider.
+- `_fill_full_material()` in `scripts/main.gd` — "Show full Material" fills one
+  exported `StandardMaterial3D` (`_full_material`) from the map store: Albedo
+  (`albedo_texture`), Normal (`normal_texture`), Heightmap
+  (`heightmap_texture`), and Roughness (`roughness_texture` +
+  `TEXTURE_CHANNEL_RED`). The Metallic slot is not filled yet. The Full Material
+  is not a map in the store, so the shell keys the mesh's full-material mode
+  with its own `FULL_MESH_MAP` value.
+- `tests/probe_hsl.gd` + `tests/probe_hsl.gdshader` + `tests/probe_hsl.tscn` —
+  the GPU `rgb_to_hsl` probe: the shader's HSL conversion measured against the
+  GDScript conversion over the stone pattern.
+- `tests/probe_main.gd` + `tests/probe_main.gdshader` + `tests/probe_main.tscn`
+  — the canvas_item repeat-wrap check (`repeat_enable` on a `SCREEN_UV`
+  canvas_item shader), the assumption the sample masks' 1.0 wrap rides on.
+- `tests/metallic_cpu.gd` + `tests/metallic_cpu.tscn` — CPU-only mirror of the
+  Metallic chain (both blurs + `fragMetallic`), the panel checks, and the
+  statistics the GPU run is measured against.
+- `tests/full_live.gd` + `tests/full_live.tscn` — drives "Show full Material":
+  the Full Material's albedo, metallic, and roughness slots, the split source,
+  and the reveal seam.
+- `tests/roughness_cpu.gd` + `tests/roughness_cpu.tscn` — CPU-only mirror of the
+  Roughness chain (blur + the smoothness pass + the invert), the mask-edge and
+  overlay-monotonicity checks, the metallic coupling checks, and the panel checks.
+- `tests/roughness_live.gd` + `tests/roughness_live.tscn` — drives the real app
+  for Roughness: the stone map, the brick colour sample, the Full Material's
+  Roughness slot and red channel, "Set as Roughness", Clear, and the Reveal
+  Slider seam.
+- `tests/roughness_probe.gd` + `tests/roughness_probe.tscn` — probe of
+  `StandardMaterial3D`'s roughness properties: the port fills
+  `roughness_texture` + `TEXTURE_CHANNEL_RED` and nothing else, because
+  `roughness_enabled` / `ROUGHNESS_MODE_TEXTURE` do not exist in this version of
+  Godot.
+- `MapModules/aoMap/ao_from_normal.gdshader` — pass 1 AO (`fragAO`: the 50-sample
+  ray per pass, the normal term and the depth term, the running mean into the
+  accumulator), pass 2 COMBINE (`fragCombineAO`: blend, bias, power, saturate).
+- `MapModules/aoMap/ao_from_normal.gd` — settings dict with `AOSettings`'
+  defaults, the generate coroutine (the accumulation loop, pass 1..99, then the
+  combine pass), and the flat normal / flat height fallbacks.
+- `MapModules/aoMap/ao_panel.gd` + `ao_panel.tscn` — the AO tool panel, laid out
+  like `AOFromNormalGui.cs` in window order: AO pixel Spread, Pixel Depth, Blend
+  Normal AO and Depth AO, AO Power, AO Bias, "Set as AO Map".
+- `MapModules/aoMap/ao_map_module.gd` — binds the driver and the panel, reads the
+  normal map as its source (`source_map_type()` "normal"), and takes the map
+  store through `set_inputs` for the height map's depth term.
+- `tests/ao_cpu.gd` + `tests/ao_cpu.tscn` — CPU mirror of the AO chain (the
+  accumulation passes + the combine pass), the aggregate stats the GPU run is
+  measured against, and the blend / contrast / bias checks on both sides.
+- `tests/ao_live.gd` + `tests/ao_live.tscn` — drives the real app for AO: the
+  height, normal and AO chains, the panel bindings, the spread / blend / power /
+  bias slider effects through the debounce, "Set as AO Map", the Full Material's
+  AO slot, and Clear.
+- `tests/ao_probe.gd` + `tests/ao_probe.tscn` — probe of `StandardMaterial3D`'s
+  AO properties: `ao_enabled` + `ao_texture` + `ao_texture_channel`, the feature
+  flag the AO slot needs.
 - `core/blit.gd` — the pass framework (setup, blit, flat, format helpers).
 - `core/test_pattern.gd` — procedural stone wall source (mortar, per-brick tone,
   bevel at joints, grain, top-down lighting gradient) so the average subtraction
@@ -499,7 +838,7 @@ exactly as Materialize's `_Slider` in `Normal_From_Height_Preview.shader` works.
   Normal Reveal Slider on the mesh preview; asserts the GPU map matches the CPU
   reference.
 
-## 9. Testing status
+## 12. Testing status
 
 The GPU passes have been run on the user's machine (Vulkan 1.4.341, Forward Plus,
 NVIDIA RTX 3080). What is verified:
@@ -581,9 +920,39 @@ NVIDIA RTX 3080). What is verified:
   mean 0.5004 vs source 0.4116); "Set as Diffuse" re-runs the chain; Clear
   restores the source to the box and to the split preview.
 
+- **The Metallic chain, on the CPU and the GPU** (`tests/metallic_cpu.tscn`,
+  256²): the CPU mirror of both blurs + `fragMetallic` gives stone mean 0.479
+  with metal mask 0.121 and base mask 0.470, the overlay gain moves the mask
+  monotonically, and the panel's defaults and bindings resolve in the shell. The
+  GPU's `rgb_to_hsl` is measured against the CPU conversion by
+  `tests/probe_hsl.tscn` (agreement to 1e-3). `tests/full_live.tscn` runs "Show
+  full Material" and asserts the Albedo, Normal, and Heightmap slots;
+  `tests/roughness_live.tscn` asserts the Roughness slot and its red channel.
+- **The Roughness chain, on the CPU** (`tests/roughness_cpu.tscn`, 256²): the
+  CPU mirror gives stone mean 0.600 stored as roughness (0.400 as smoothness),
+  base roughness 0.9 writes 0.9, `BlurSize` 20 smooths the sample masks
+  (sample mean 0.330 → 0.211), the overlay gain raises the map monotonically,
+  clearing the metallic map takes the chain to base, and the isolate override
+  writes the mask. The measured GPU-CPU chain delta is 0.0148.
+- **The live Roughness app chain** (`tests/roughness_live.tscn`, 512²): the
+  Metallic window runs first on the wall's own brick colour (hue 1.0, Low 0.0 /
+  High 0.5), giving a metallic map with mean 0.969 — the wall scores as metal.
+  The Roughness box's Create then runs its passes on the diffuse: the map mean
+  drops to 0.312, far below Base Roughness 0.9, because the metal lerp pulls the
+  level to Metal Roughness 0.3, and the map carries the metallic map's detail
+  (spread 0.1686). "Show full Material" fills the Full Material's Roughness slot
+  with the map, read from the red channel, at the map's size; the Reveal Slider
+  at 0.3 writes `reveal` / `split_reveal` and the label with no pass chain;
+  clearing the Metallic map and setting Base Roughness 0.2 moves the mean to
+  0.202, which is the base level reading straight; "Set as Roughness" re-runs the
+  chain, and Clear empties the map. The panel's defaults, every widget binding,
+  the isolate rows, and the source radio all check out.
+
 What is not verified: the visual result of the maps on the mesh (the screenshots
 need a human eye), the exact stacked-blur tail Unity produces (see the stacking
-note), and everything that depends on unported maps (Metallic, Smoothness, Edge,
-AO, alignment, seamless tiling, DNMST preview, cubemap lighting, project save,
-BMP/TIFF/TGA export), plus the height tool's "Use Normal as input" path, which
-the ported normal map now makes possible.
+note), and everything that depends on unported maps (Edge, AO, alignment,
+seamless tiling, DNMST preview, cubemap lighting, project save, BMP/TIFF/TGA
+export), plus the height tool's "Use Normal as input" path, which the ported
+normal map now makes possible. The ported Metallic and Roughness chains are
+measured against CPU mirrors and the live app, not against a render from the
+Unity tool, so the numbers are the port's own.

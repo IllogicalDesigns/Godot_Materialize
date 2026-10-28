@@ -120,8 +120,10 @@ vec3 hsl_to_rgb(vec3 hsl) {
 void fragment() {
 	if (pass == PASS_BLUR) {
 		// Raised-cosine windowed blur along one axis: Materialize's fragBlur.
-		// Unity stacked many narrow passes; one pass with the full radius and
-		// the raised-cosine window lands the same spread in a single frame.
+		// One axis of Unity's single `fragBlur` pass: the GUI runs one horizontal
+		// and one vertical pass per radius, which is what this pass does. The
+		// window is Unity's `cos(i / BlurSamples * PI) * 0.5 + 0.5` over the
+		// `±BlurSamples` taps.
 		highp vec2 uv = SCREEN_UV;
 		highp vec3 sum = vec3(0.0, 0.0, 0.0);
 		highp float weight_sum = 0.0;

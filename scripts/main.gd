@@ -9,9 +9,11 @@ extends Node3D
 ## 3D preview mesh. Every widget it wires is an `@export` assigned in
 ## `scenes/main.tscn`, so this script holds no node paths (`CODING_RULES.md`).
 ## Each texture map lives in its own module under `MapModules/` - see
-## `MapModules/map_module.gd`. Height, Diffuse, Normal and Metallic are ported
-## (`MapModules/heightMap/`, `MapModules/diffuseMap/`, `MapModules/normalMap/`,
-## `MapModules/metallicMap/`); the rest are the roadmap rows in `MAP_BOXES`.
+## `MapModules/map_module.gd`. Height, Diffuse, Normal, Metallic, Roughness
+## and AO are ported (`MapModules/heightMap/`, `MapModules/diffuseMap/`,
+## `MapModules/normalMap/`, `MapModules/metallicMap/`,
+## `MapModules/roughnessMap/`, `MapModules/aoMap/`); the rest are the roadmap
+## rows in `MAP_BOXES`.
 ##
 ## Clicking a box's Create button makes that map active: its panel slots into
 ## `MapOptionsPanel`, its map feeds the `MeshInstance3D` preview, and the mesh
@@ -20,10 +22,11 @@ extends Node3D
 ## "Show full Material" puts the default Godot material (`StandardMaterial3D`,
 ## the mesh's own material in `scenes/main.tscn`) on the mesh, filled straight
 ## from the map store: the Diffuse map in the Albedo slot, the Normal map in the
-## Normal map slot, the Height map in the Heightmap slot, roughness as the
-## shading control. The normal and heightmap features are turned on in the
-## scene, so the built-in shader does the lighting and the shell only fills
-## slots.
+## Normal map slot, the Height map in the Heightmap slot, the Roughness map in
+## the Roughness slot, the shading control, and the AO map in the Ambient
+## Occlusion slot. The normal, heightmap and AO features are turned on as the
+## maps arrive, so the built-in shader does the lighting and the shell only
+## fills slots.
 ##
 ## The window is Materialize's layout (`MainGui.cs` lines 485-1288): the map box
 ## row, the saving options box, the 3D preview filling the rest of the window,
@@ -48,15 +51,15 @@ const MAP_BOXES: Array[Dictionary] = [
 	{"type": "metallic", "title": "Metallic Map", "create": "Create",
 		"unity": "Scripts/MetallicGui.cs + Shaders/Resources/Blit_Metallic.shader",
 		"module": "MapModules/metallicMap/", "status": "ported (fourth tool)"},
-	{"type": "smoothness", "title": "Smoothness Map", "create": "Create",
+	{"type": "roughness", "title": "Roughness Map", "create": "Create",
 		"unity": "Scripts/SmoothnessGui.cs + Shaders/Resources/Blit_Smoothness.shader",
-		"module": "MapModules/smoothnessMap/", "status": "not started"},
+		"module": "MapModules/roughnessMap/", "status": "ported (fifth tool)"},
 	{"type": "edge", "title": "Edge Map", "create": "Create",
 		"unity": "Scripts/EdgeFromNormalGui.cs + Shaders/Resources/Blit_Edge_From_Normal.shader",
 		"module": "MapModules/edgeMap/", "status": "not started"},
 	{"type": "ao", "title": "AO Map", "create": "Create",
 		"unity": "Scripts/AOFromNormalGui.cs + Shaders/AO_From_Normal_Preview.shader",
-		"module": "MapModules/aoMap/", "status": "not started"},
+		"module": "MapModules/aoMap/", "status": "ported (sixth tool)"},
 ]
 
 ## The map boxes, in the same order as MAP_BOXES, assigned in the Inspector.
@@ -163,6 +166,8 @@ func _ready() -> void:
 	modules["diffuse"] = _add_diffuse_module()
 	modules["normal"] = _add_normal_module()
 	modules["metallic"] = _add_metallic_module()
+	modules["roughness"] = _add_roughness_module()
+	modules["ao"] = _add_ao_module()
 
 	for index in MAP_BOXES.size():
 		var spec: Dictionary = MAP_BOXES[index]
@@ -249,6 +254,18 @@ func _add_normal_module() -> MapModule:
 
 func _add_metallic_module() -> MapModule:
 	var module := MetallicMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
+func _add_roughness_module() -> MapModule:
+	var module := RoughnessMapModule.new()
+	add_child(module)
+	module.map_changed.connect(_on_map_changed)
+	return module
+
+func _add_ao_module() -> MapModule:
+	var module := AOMapModule.new()
 	add_child(module)
 	module.map_changed.connect(_on_map_changed)
 	return module
@@ -373,18 +390,37 @@ func _set_mesh_map(map_type: String) -> void:
 
 ## "Show full Material" fills the built-in Godot material from the map store:
 ## the Diffuse map in the Albedo slot, the Normal map in the Normal map slot,
-## the Height map in the Heightmap slot. Every slot is a plain 8-bit texture
-## copy, so filling is a uniform write with no pass chain. Godot reads the
-## heightmap from the red channel, which is where the height pass writes its
-## height, and the normal map is stored signed (0.5 neutral), which is the
-## tangent-space convention Godot samples. An empty map leaves its slot empty:
-## StandardMaterial3D samples its built-in default for an empty slot, and the
-## Albedo slot keeps the flat grey stand-in, the way Materialize writes
-## `_TextureGrey` into `_DiffuseMap` (`MainGui.cs` lines 293-299).
+## the Height map in the Heightmap slot, the Roughness map in the Roughness
+## slot, and the AO map in the Ambient Occlusion slot. Every slot is a plain
+## 8-bit texture copy, so filling is a uniform write with no pass chain. Godot reads the heightmap from the red channel,
+## which is where the height pass writes its height, and the normal map is
+## stored signed (0.5 neutral), which is the tangent-space convention Godot
+## samples. An empty map leaves its slot empty: StandardMaterial3D samples its
+## built-in default for an empty slot, and the Albedo slot keeps the flat grey
+## stand-in, the way Materialize writes `_TextureGrey` into `_DiffuseMap`
+## (`MainGui.cs` lines 293-299).
 func _fill_full_material() -> void:
 	_full_material.albedo_texture = _display_texture(maps.get("diffuse"), _neutral)
 	_full_material.normal_texture = _display_texture(maps.get("normal"))
 	_full_material.heightmap_texture = _display_texture(maps.get("height"))
+	# Roughness is the shading control the full material needs: the map is
+	# greyscale, so the red channel carries it. Unity's test object puts its
+	# smoothness map in the Standard shader's smoothness slot the same way
+	# (`MainGui.cs` lines 283-335), and the port stores the inverted value, so
+	# 0.0 in the map is a mirror, which is what the roughness slot wants.
+	_full_material.roughness_texture = _display_texture(maps.get("roughness"))
+	_full_material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	# AO is the Ambient Occlusion slot. Unity's AO preview
+	# (`AO_From_Normal_Preview.shader`) multiplies the AO map into the lit
+	# colour on the test object, which is what the engine's AO slot does, and
+	# the combined map is greyscale, so the red channel carries it. The feature
+	# flag is a property in this engine (`ao_enabled`), so the slot switches on
+	# with the map and off when it is cleared, the way an empty slot samples the
+	# material's default.
+	var ao_map: Image = maps.get("ao")
+	_full_material.ao_texture = _display_texture(ao_map)
+	_full_material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	_full_material.ao_enabled = ao_map != null
 
 ## A map as an 8-bit texture for a material slot. `neutral` is the stand-in for
 ## a slot that needs one (Albedo); empty slots get null and sample the
@@ -673,7 +709,7 @@ func _on_show_full_material_pressed() -> void:
 	# from the map store and puts it on the mesh; the panels stay open, which is
 	# the port's deviation.
 	_set_mesh_map(FULL_MESH_MAP)
-	_set_status("Showing full material on the mesh: Diffuse in Albedo, Normal map, Heightmap, roughness.")
+	_set_status("Showing full material on the mesh: Diffuse in Albedo, Normal map, Heightmap, Roughness map, AO map.")
 
 func _on_next_cube_map_pressed() -> void:
 	_set_status("Cube maps are not ported yet (Assets/CubeMaps).")

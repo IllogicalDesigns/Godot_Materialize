@@ -14,11 +14,12 @@ extends RefCounted
 ##   3. EDIT     - fragEditDiffuse: spot removal, lighting removal, overlay,
 ##                 colour restore, final contrast / bias, saturation.
 ##
-## Unity stacked many narrow blur passes per map (Blit_Shader pass 1, run
-## `2 * ceil(2 * blurSize)` times with alternating directions). Each Godot pass
-## costs a frame, so the port runs one horizontal and one vertical pass per map
-## with the full radius: the same raised-cosine window, the same spread, one
-## frame.
+## Unity runs one horizontal and one vertical `fragBlur` pass per map
+## (Blit_Shader pass 1, `EditDiffuseGui.cs` lines 417-432), and the port runs
+## the same pair: the same raised-cosine window over the same taps, so the
+## spread matches. Unity's `AvgColorBlurSize` blur uses `_BlurSpread` =
+## `AvgColorBlurSize / 5` to widen the tap spacing; the port carries the
+## radius in the shader, so one pass at the size covers the same span.
 ##
 ## The tool always reads the pristine source image, Materialize's
 ## `_DiffuseMapOriginal`, so the passes never see their own output.

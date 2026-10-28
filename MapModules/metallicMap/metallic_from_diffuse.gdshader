@@ -112,8 +112,10 @@ vec3 rgb_to_hsl(vec3 color) {
 void fragment() {
 	if (pass == PASS_BLUR) {
 		// Raised-cosine windowed blur along one axis: Materialize's fragBlur.
-		// Unity stacked many narrow passes; one pass with the full radius and
-		// the raised-cosine window lands the same spread in a single frame.
+		// One axis of Unity's single `fragBlur` pass: the GUI runs one horizontal
+		// and one vertical pass per radius (`MetallicGui.cs` lines 479-514),
+		// which is what this pass does. The window is Unity's
+		// `cos(i / BlurSamples * PI) * 0.5 + 0.5` over the `±BlurSamples` taps.
 		// `_BlurContrast` is 1.0 for the Metallic tool
 		// (`MetallicGui.cs` line 486), which is the identity, so no contrast
 		// term is applied here.
