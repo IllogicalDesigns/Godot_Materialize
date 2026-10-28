@@ -26,12 +26,13 @@ glow_enabled = true
 [sub_resource type="BoxMesh" id="BoxMesh_616h8"]
 material = SubResource("StandardMaterial3D_616h8")
 
-[node name="MainNew" type="Node3D" unique_id=2127802715 node_paths=PackedStringArray("boxes", "_mesh", "_panel_slot", "_status", "_resolution", "_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce", "_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button", "_generate_button", "_save_map_button", "_save_all_button", "_save_format", "_show_full_material_button", "_next_cube_map_button", "_tile_maps_button", "_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button", "_make_suggestion_button", "_hide_gui_button")]
+[node name="MainNew" type="Node3D" unique_id=2127802715 node_paths=PackedStringArray("boxes", "_mesh", "_panel_slot", "_panel_park", "_status", "_resolution", "_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce", "_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button", "_generate_button", "_save_map_button", "_save_all_button", "_save_format", "_show_full_material_button", "_next_cube_map_button", "_tile_maps_button", "_clear_all_maps_button", "_toggle_fullscreen_button", "_quit_button", "_make_suggestion_button", "_hide_gui_button")]
 script = ExtResource("3_main")
-boxes = [NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel2"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel3"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel4"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel5"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel6"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel7")]
+boxes = [NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel2"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel3"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel4"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel5"), NodePath("UI/MapsAnd3DFunctions/Maps/MapPanel7")]
 _mesh = NodePath("MeshInstance3D")
 _full_material = SubResource("StandardMaterial3D_616h8")
 _panel_slot = NodePath("UI/MapOptionsPanel/PanelSlot")
+_panel_park = NodePath("UI/PanelPark")
 _status = NodePath("UI/MapsAnd3DFunctions/Toolbar/Status")
 _resolution = NodePath("UI/MapsAnd3DFunctions/Toolbar/Resolution")
 _load_dialog = NodePath("LoadDialog")
@@ -93,9 +94,6 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="MapPanel5" parent="UI/MapsAnd3DFunctions/Maps" unique_id=1937724931 instance=ExtResource("1_0wfyh")]
-layout_mode = 2
-
-[node name="MapPanel6" parent="UI/MapsAnd3DFunctions/Maps" unique_id=584447955 instance=ExtResource("1_0wfyh")]
 layout_mode = 2
 
 [node name="MapPanel7" parent="UI/MapsAnd3DFunctions/Maps" unique_id=290895585 instance=ExtResource("1_0wfyh")]
@@ -187,6 +185,10 @@ size_flags_horizontal = 0
 size_flags_vertical = 8
 
 [node name="PanelSlot" type="VBoxContainer" parent="UI/MapOptionsPanel" unique_id=1800000008]
+layout_mode = 2
+
+[node name="PanelPark" type="VBoxContainer" parent="UI" unique_id=1800000013]
+visible = false
 layout_mode = 2
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=700108628]

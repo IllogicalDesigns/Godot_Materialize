@@ -1,7 +1,7 @@
 # How Materialize works
 
 Materialize (Unity Technologies, 2013, GPLv3) turns a single photograph into a
-set of PBR texture maps: diffuse, height, normal, edge, ambient occlusion,
+set of PBR texture maps: diffuse, height, normal, ambient occlusion,
 metallic, smoothness. It does this by running a chain of full-screen GPU shader
 passes over the image, each pass writing into a render texture that feeds the
 next pass. Every tool is a `.cs` GUI panel (Unity `OnGUI` sliders) plus one or
@@ -278,7 +278,7 @@ the right holds the file format list (`BMP` `JPG` `PNG` `TGA` `TIFF`) and
 `Windowed`/`Full Screen`, `Make Suggestion` and `Hide Gui`/`Show Gui` sit in the
 corners. Materialize draws these with `GUI.Box`, `GUI.Label`, `GUI.Button`; Godot
 draws them with `PanelContainer`, `Label`, `Button`, in the same order
-(Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO). The Smoothness box is
+(Height, Diffuse, Normal, Metallic, Smoothness, AO). The Smoothness box is
 titled `Roughness Map`: the port stores the map as roughness, so the box name
 follows the engine slot it fills (`StandardMaterial3D.roughness_texture`), and
 the window's numbers are roughness too (`1 - smoothness`).
@@ -985,7 +985,7 @@ NVIDIA RTX 3080). What is verified:
 
 What is not verified: the visual result of the maps on the mesh (the screenshots
 need a human eye), the exact stacked-blur tail Unity produces (see the stacking
-note), and everything that depends on unported maps (Edge, alignment,
+note), and everything that depends on unported maps (alignment,
 seamless tiling, DNMST preview, cubemap lighting, project save, BMP/TIFF/TGA
 export), plus the height tool's "Use Normal as input" path, which the ported
 normal map now makes possible. The ported Metallic, Roughness and AO chains are

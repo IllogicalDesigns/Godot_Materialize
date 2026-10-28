@@ -92,7 +92,7 @@ func _process(_delta: float) -> void:
 				return
 			# AO's source is the Normal map, not the height, so Create is
 			# greyed out until a normal map exists.
-			var ao_box: MapBox = _main.boxes[6]
+			var ao_box: MapBox = _main.boxes[5]
 			_check(ao_box.create_button.disabled,
 					"the AO box Create is disabled with no normal map, the source gate")
 			# The Height chain, then the Normal chain: AO needs both, the
@@ -126,7 +126,7 @@ func _process(_delta: float) -> void:
 			_check(AOMapModule.new().create_available({"normal": normal, "height": _main.maps["height"]}),
 					"the AO box Create is enabled with the normal map, the source")
 			_check(not AOMapModule.new().create_available({}), "the AO box Create is disabled with an empty store")
-			_main.boxes[6].create_button.pressed.emit()
+			_main.boxes[5].create_button.pressed.emit()
 			_phase = PHASE_GEN_AO
 			print("ao live: AO box Create, ~100 passes")
 		PHASE_GEN_AO:
@@ -297,7 +297,7 @@ func _process(_delta: float) -> void:
 					"the AO-only store leaves the roughness slot empty")
 			# Clear empties the map, the feature flag goes off, and the slot
 			# samples the material's default.
-			_main.boxes[6].clear_button.pressed.emit()
+			_main.boxes[5].clear_button.pressed.emit()
 			_check(_main.maps["ao"] == null, "Clear empties the AO map")
 			_check(not _main._full_material.ao_enabled,
 					"the full material switches AO off when the map is cleared")
@@ -306,7 +306,7 @@ func _process(_delta: float) -> void:
 					"the AO box Create is enabled with the normal map, the source")
 			_check(not AOMapModule.new().create_available({"height": _main.maps["height"]}),
 					"the AO box Create is disabled with a height-only store")
-			_main.boxes[6].create_button.pressed.emit()
+			_main.boxes[5].create_button.pressed.emit()
 			_phase = PHASE_REGEN
 			print("ao live: AO box Create again, checking the groove")
 		PHASE_REGEN:

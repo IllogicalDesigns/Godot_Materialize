@@ -36,7 +36,7 @@ extends Node3D
 const UNITY_SOURCE := "/home/tiny/AI/materialize/Materialize"
 
 ## Materialize's box row, in `MainGui.cs` draw order (lines 496-1050):
-## Height, Diffuse, Normal, Metallic, Smoothness, Edge, AO, each a 110x250 box
+## Height, Diffuse, Normal, Metallic, Smoothness, AO, each a 110x250 box
 ## with a 100x100 preview. The Diffuse box's create button is labelled "Edit".
 const MAP_BOXES: Array[Dictionary] = [
 	{"type": "height", "title": "Height Map", "create": "Create",
@@ -54,9 +54,6 @@ const MAP_BOXES: Array[Dictionary] = [
 	{"type": "roughness", "title": "Roughness Map", "create": "Create",
 		"unity": "Scripts/SmoothnessGui.cs + Shaders/Resources/Blit_Smoothness.shader",
 		"module": "MapModules/roughnessMap/", "status": "ported (fifth tool)"},
-	{"type": "edge", "title": "Edge Map", "create": "Create",
-		"unity": "Scripts/EdgeFromNormalGui.cs + Shaders/Resources/Blit_Edge_From_Normal.shader",
-		"module": "MapModules/edgeMap/", "status": "not started"},
 	{"type": "ao", "title": "AO Map", "create": "Create",
 		"unity": "Scripts/AOFromNormalGui.cs + Shaders/AO_From_Normal_Preview.shader",
 		"module": "MapModules/aoMap/", "status": "ported (sixth tool)"},
@@ -74,6 +71,10 @@ const MAP_BOXES: Array[Dictionary] = [
 ## from the map store by `_fill_full_material()`.
 @export var _full_material: StandardMaterial3D
 @export var _panel_slot: VBoxContainer
+## Hidden holder for the panels that are not on screen. The cached panels in
+## `_panels` stay in the tree here, never freed, so switching back to a map
+## finds the same valid panel with its slider state intact.
+@export var _panel_park: VBoxContainer
 @export var _status: Label
 @export var _resolution: OptionButton
 @export var _load_dialog: FileDialog
@@ -121,6 +122,7 @@ var _panels: Dictionary = {}
 
 var _active: MapModule
 var _mesh_map: String = ""
+var _active_panel: Control
 var _pick_sample := 0
 var _busy := false
 var _dirty := false
@@ -277,8 +279,6 @@ func _activate(module: MapModule) -> void:
 	_active = module
 	_mesh_map = module.map_type()
 
-	# TODO crashes here with this bug \/
-	# Trying to assign invalid previously freed instance.
 	var panel: Control = _panels.get(module.map_type())
 	if panel == null:
 		panel = module.panel_scene().instantiate()
@@ -297,10 +297,23 @@ func _activate(module: MapModule) -> void:
 		if panel.has_signal("preview_changed"):
 			panel.connect("preview_changed", _on_preview_changed)
 
-	for child in _panel_slot.get_children():
-		_panel_slot.remove_child(child)
-		child.queue_free()
+	# The panels are cached in `_panels` and reused, so the outgoing panel is
+	# parked hidden in `_panel_park` and never freed. Freeing the slot's child
+	# leaves a freed instance in `_panels`, and the next Create on that map
+	# crashes assigning it ("Trying to assign invalid previously freed
+	# instance"). `add_child` does not reparent: a parked panel must leave the
+	# park before it comes back, and the outgoing panel must leave the slot
+	# before it is parked. `remove_child` keeps every panel alive; `_panels`
+	# holds the references across the moves, so no freed instance is assigned.
+	if panel.get_parent() != null:
+		panel.get_parent().remove_child(panel)
+	if _active_panel != null and _active_panel != panel:
+		_panel_slot.remove_child(_active_panel)
+		_active_panel.visible = false
+		_panel_park.add_child(_active_panel)
 	_panel_slot.add_child(panel)
+	panel.visible = true
+	_active_panel = panel
 	_set_mesh_map(_mesh_map)
 	_set_reveal()
 
@@ -763,7 +776,7 @@ func _on_fullscreen_pressed() -> void:
 ## Reports exports that were never assigned in the Inspector, so a missing
 ## widget shows up as an error at load instead of a null crash mid-run.
 func _check_exports() -> void:
-	for name: String in ["boxes", "_mesh", "_full_material", "_panel_slot", "_status", "_resolution",
+	for name: String in ["boxes", "_mesh", "_full_material", "_panel_slot", "_panel_park", "_status", "_resolution",
 			"_load_dialog", "_save_dialog", "_save_all_dialog", "_debounce",
 			"_save_panel", "_ui", "_load_diffuse_button", "_stone_pattern_button",
 			"_generate_button", "_save_map_button", "_save_all_button", "_save_format",

@@ -22,7 +22,6 @@ chain of GPU "blit" passes, each with its own slider set, to derive maps:
 | --- | --- |
 | Height | Diffuse (multi-scale blur + average subtraction + contrast/gain) |
 | Normal | Height (sobel / sobol / sphere / height-blur variants) |
-| Edge | Normal (detect creases, re-render normal map) |
 | AO | Normal (ray-marched hemisphere sampling, MSAO) |
 | Metallic | Diffuse + height + normal (thresholds + blur masks) |
 | Smoothness | Diffuse + metallic + specular-style heuristics |
@@ -152,8 +151,8 @@ PNG. Clicking a box's **Create** makes that map active: its panel slots into
 `MapOptionsPanel` and its map goes onto the mesh. Height (1st), Diffuse (2nd),
 Normal (3rd), Metallic (4th), Roughness (5th, Unity's Smoothness tool) and
 AO (6th, Unity's Normal + Depth to AO tool) are
-ported, so their Create buttons are live; the unported maps' (Edge,
-Alignment, Seamless Tiling) Create buttons are disabled, and the status line
+ported, so their Create buttons are live; the unported maps' (Alignment,
+Seamless Tiling) Create buttons are disabled, and the status line
 names the Unity file each one still needs.
 Quick Save writes `user://materialize<suffix>.png` (Materialize appends the map
 suffix, `MainGui.cs` lines 543-547); the map store keys the pristine source as
@@ -251,7 +250,7 @@ Each map lives in its own `MapModules/<map>Map/` folder once ported; the roadmap
 print in `scripts/main.gd` lists which Unity file each one comes from. Height
 (1st), Diffuse (2nd), Normal (3rd), Metallic (4th), Roughness (5th, Unity's
 Smoothness tool stored as roughness) and AO (6th, Unity's Normal + Depth to AO
-tool, reading the normal map) are ported; Edge, Alignment and Seamless Tiling
+tool, reading the normal map) are ported; Alignment and Seamless Tiling
 are next. Diffuse uses the module contract plus two preview
 hooks (`source_map_type()`, `preview_split()`), Normal adds `set_inputs(maps)`
 to read the pristine source for "Shape from Diffuse", Metallic reads the same
@@ -311,19 +310,18 @@ One tool per commit, in dependency order (later tools consume earlier outputs):
 2. **Height From Diffuse** — ported, wired into the app, panel and live mesh output
    validated on the GPU. Done.
 3. **Normal From Height** — ported third. Done.
-4. Edge From Normal
-5. **AO From Normal** — ported sixth (out of list order): it reads the Normal
+4. **AO From Normal** — ported (out of list order): it reads the Normal
    map, so it came in right after the Normal and Height chains were live. Done.
-6. **Metallic** — ported fourth (out of list order). Done.
-7. **Smoothness** — ported fifth as **Roughness** (the map is stored as
+5. **Metallic** — ported (out of list order). Done.
+6. **Smoothness** — ported as **Roughness** (the map is stored as
    roughness, `1 - smoothness`, so it drops straight into
    `StandardMaterial3D.roughness_texture`). Done.
-8. **Edit Diffuse** — ported second (out of list order): its passes only read the
+7. **Edit Diffuse** — ported (out of list order): its passes only read the
    source image, so it came in right after the first module. Done.
-9. Alignment
-10. Seamless Tiling
-11. Material preview (DNMST) + cubemap lighting + test meshes
-12. Export (file formats) + project save/load
+8. Alignment
+9. Seamless Tiling
+10. Material preview (DNMST) + cubemap lighting + test meshes
+11. Export (file formats) + project save/load
 
 For each tool: read the Unity `.cs` GUI + `Blit_*.shader`, port the shader to
 `.gdshader`, port the GUI panel into `MapModules/<map>Map/`, wire the settings to
@@ -348,7 +346,7 @@ render from the Unity tool.
   Full resolution is a finer reference and avoids viewport resizing mid-chain.
 - Unity shaders use `_MainTex_Tint` style multi-sample blur chains; Godot does
   the same with separable taps. Compute shaders (`compute_shaders`, Vulkan)
-  would make AO/edge passes cheaper later.
+  would make the AO passes cheaper later.
 - BMP/TIFF/TGA export needs a custom writer; PSD icons need PNG conversion;
   FBX meshes need `.glb` conversion.
 

@@ -1,6 +1,6 @@
 class_name MapModule
 extends Node
-## Base class for one texture map module: Height, Diffuse, Normal, Edge,
+## Base class for one texture map module: Height, Diffuse, Normal,
 ## Ambient Occlusion, Metallic, Smoothness.
 ##
 ## Each map lives in its own folder under `MapModules/` and owns everything
