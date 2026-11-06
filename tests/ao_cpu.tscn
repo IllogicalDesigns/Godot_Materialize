@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bao0cpumirror1"]
+
+[ext_resource type="Script" path="res://tests/ao_cpu.gd" id="1"]
+
+[node name="AOCPUMirror" type="Node"]
+script = ExtResource("1")

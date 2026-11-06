@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://cdxapiicdde1w"]
+
+[node name="SavePanel" type="PanelContainer" unique_id=323743495]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=341130203]
+layout_mode = 2
+
+[node name="PanelName" type="Label" parent="VBoxContainer" unique_id=178515086]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Map File Format"
+horizontal_alignment = 1
+
+[node name="FormatOption" type="OptionButton" parent="VBoxContainer" unique_id=120970130]
+layout_mode = 2
+selected = 2
+item_count = 5
+popup/item_0/text = "BMP"
+popup/item_0/id = 0
+popup/item_1/text = "JPG"
+popup/item_1/id = 1
+popup/item_2/text = "PNG"
+popup/item_2/id = 2
+popup/item_3/text = "TGA"
+popup/item_3/id = 3
+popup/item_4/text = "TIFF"
+popup/item_4/id = 4
+
+[node name="Button" type="Button" parent="VBoxContainer" unique_id=999200297]
+layout_mode = 2
+text = "Save all maps!"
+
+[node name="SaveMaterialButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+tooltip_text = "Save every map as a file and the Godot material that uses them, in one folder"
+text = "Save Material"

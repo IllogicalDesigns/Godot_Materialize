@@ -1,0 +1,462 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://MapModules/normalMap/normal_panel.gd" id="1_panel"]
+[ext_resource type="Script" uid="uid://bar2ytr42v43o" path="res://ui/fader_group.gd" id="2_fader"]
+
+[node name="NormalPanel" type="VBoxContainer" node_paths=PackedStringArray("reveal_slider", "reveal_label", "weight_faders", "preset_default_button", "preset_smooth_button", "preset_crisp_button", "preset_mids_button", "pre_contrast_slider", "pre_contrast_label", "angular_intensity_slider", "angular_intensity_label", "angularity_slider", "angularity_label", "shape_recognition_slider", "shape_recognition_label", "light_rotation_slider", "light_rotation_label", "slope_blur_slider", "slope_blur_label", "shape_bias_slider", "shape_bias_label", "final_contrast_slider", "final_contrast_label", "use_diffuse_check", "set_button", "reset_button")]
+custom_minimum_size = Vector2(340, 0)
+script = ExtResource("1_panel")
+reveal_slider = NodePath("ScrollContainer/Column/RevealGroup/Reveal")
+reveal_label = NodePath("ScrollContainer/Column/RevealGroup/RevealVal")
+weight_faders = [NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W6"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W5"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W4"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W3"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W2"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W1"), NodePath("ScrollContainer/Column/EqualizerGroup/Row/Faders/W0")]
+preset_default_button = NodePath("ScrollContainer/Column/EqualizerGroup/Row/Presets/Default")
+preset_smooth_button = NodePath("ScrollContainer/Column/EqualizerGroup/Row/Presets/Smooth")
+preset_crisp_button = NodePath("ScrollContainer/Column/EqualizerGroup/Row/Presets/Crisp")
+preset_mids_button = NodePath("ScrollContainer/Column/EqualizerGroup/Row/Presets/Mids")
+pre_contrast_slider = NodePath("ScrollContainer/Column/PreContrastGroup/PreContrast")
+pre_contrast_label = NodePath("ScrollContainer/Column/PreContrastGroup/PreContrastVal")
+angular_intensity_slider = NodePath("ScrollContainer/Column/AngularGroup/AngularIntensity")
+angular_intensity_label = NodePath("ScrollContainer/Column/AngularGroup/AngularIntensityVal")
+angularity_slider = NodePath("ScrollContainer/Column/AngularGroup/Angularity")
+angularity_label = NodePath("ScrollContainer/Column/AngularGroup/AngularityVal")
+shape_recognition_slider = NodePath("ScrollContainer/Column/ShapeGroup/ShapeRecognition")
+shape_recognition_label = NodePath("ScrollContainer/Column/ShapeGroup/ShapeRecognitionVal")
+light_rotation_slider = NodePath("ScrollContainer/Column/ShapeGroup/LightRotation")
+light_rotation_label = NodePath("ScrollContainer/Column/ShapeGroup/LightRotationVal")
+slope_blur_slider = NodePath("ScrollContainer/Column/ShapeGroup/SlopeBlur")
+slope_blur_label = NodePath("ScrollContainer/Column/ShapeGroup/SlopeBlurVal")
+shape_bias_slider = NodePath("ScrollContainer/Column/ShapeGroup/ShapeBias")
+shape_bias_label = NodePath("ScrollContainer/Column/ShapeGroup/ShapeBiasVal")
+final_contrast_slider = NodePath("ScrollContainer/Column/FinalGroup/FinalContrast")
+final_contrast_label = NodePath("ScrollContainer/Column/FinalGroup/FinalContrastVal")
+use_diffuse_check = NodePath("ScrollContainer/Column/DiffuseCheck")
+set_button = NodePath("ScrollContainer/Column/SetButton")
+reset_button = NodePath("ScrollContainer/Column/ResetButton")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Normal From Height"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(500, 500)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Column" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+
+[node name="RevealGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="RevealTitle" type="Label" parent="ScrollContainer/Column/RevealGroup"]
+layout_mode = 2
+text = "Normal Reveal Slider"
+vertical_alignment = 1
+
+[node name="Reveal" type="HSlider" parent="ScrollContainer/Column/RevealGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="RevealVal" type="Label" parent="ScrollContainer/Column/RevealGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="PreContrastGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="PreContrastTitle" type="Label" parent="ScrollContainer/Column/PreContrastGroup"]
+layout_mode = 2
+text = "Pre Contrast"
+vertical_alignment = 1
+
+[node name="PreContrast" type="HSlider" parent="ScrollContainer/Column/PreContrastGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 50.0
+step = 0.1
+value = 20.0
+
+[node name="PreContrastVal" type="Label" parent="ScrollContainer/Column/PreContrastGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "20.00"
+horizontal_alignment = 2
+
+[node name="EqualizerGroup" type="VBoxContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+
+[node name="EqualizerTitle" type="Label" parent="ScrollContainer/Column/EqualizerGroup"]
+layout_mode = 2
+text = "Frequency Equalizer"
+
+[node name="Row" type="HBoxContainer" parent="ScrollContainer/Column/EqualizerGroup"]
+layout_mode = 2
+
+[node name="Faders" type="HBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="W6" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W6"]
+layout_mode = 2
+text = "6"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W6"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W6"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.80"
+horizontal_alignment = 1
+
+[node name="W5" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W5"]
+layout_mode = 2
+text = "5"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W5"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.95
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W5"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.95"
+horizontal_alignment = 1
+
+[node name="W4" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W4"]
+layout_mode = 2
+text = "4"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W4"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W4"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "1.00"
+horizontal_alignment = 1
+
+[node name="W3" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W3"]
+layout_mode = 2
+text = "3"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W3"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W3"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.80"
+horizontal_alignment = 1
+
+[node name="W2" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W2"]
+layout_mode = 2
+text = "2"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W2"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W2"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 1
+
+[node name="W1" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W1"]
+layout_mode = 2
+text = "1"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W1"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.35
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W1"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.35"
+horizontal_alignment = 1
+
+[node name="W0" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders" node_paths=PackedStringArray("slider", "value_label")]
+layout_mode = 2
+script = ExtResource("2_fader")
+slider = NodePath("Slider")
+value_label = NodePath("Val")
+
+[node name="Name" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W0"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="Slider" type="VSlider" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W0"]
+custom_minimum_size = Vector2(28, 90)
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.3
+
+[node name="Val" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Faders/W0"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "0.30"
+horizontal_alignment = 1
+
+[node name="Presets" type="VBoxContainer" parent="ScrollContainer/Column/EqualizerGroup/Row"]
+layout_mode = 2
+
+[node name="PresetsTitle" type="Label" parent="ScrollContainer/Column/EqualizerGroup/Row/Presets"]
+layout_mode = 2
+text = "Presets"
+
+[node name="Default" type="Button" parent="ScrollContainer/Column/EqualizerGroup/Row/Presets"]
+layout_mode = 2
+text = "Default"
+
+[node name="Smooth" type="Button" parent="ScrollContainer/Column/EqualizerGroup/Row/Presets"]
+layout_mode = 2
+text = "Smooth"
+
+[node name="Crisp" type="Button" parent="ScrollContainer/Column/EqualizerGroup/Row/Presets"]
+layout_mode = 2
+text = "Crisp"
+
+[node name="Mids" type="Button" parent="ScrollContainer/Column/EqualizerGroup/Row/Presets"]
+layout_mode = 2
+text = "Mids"
+
+[node name="AngularGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="AngularIntensityTitle" type="Label" parent="ScrollContainer/Column/AngularGroup"]
+layout_mode = 2
+text = "Angular Intensity"
+vertical_alignment = 1
+
+[node name="AngularIntensity" type="HSlider" parent="ScrollContainer/Column/AngularGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="AngularIntensityVal" type="Label" parent="ScrollContainer/Column/AngularGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="AngularityTitle" type="Label" parent="ScrollContainer/Column/AngularGroup"]
+layout_mode = 2
+text = "Angularity Amount"
+vertical_alignment = 1
+
+[node name="Angularity" type="HSlider" parent="ScrollContainer/Column/AngularGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.0
+
+[node name="AngularityVal" type="Label" parent="ScrollContainer/Column/AngularGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="DiffuseCheck" type="CheckBox" parent="ScrollContainer/Column"]
+layout_mode = 2
+button_pressed = true
+text = " Shape from Diffuse (Unchecked from Height)"
+
+[node name="ShapeTitle" type="Label" parent="ScrollContainer/Column"]
+layout_mode = 2
+text = " Shape Recognition, Rotation, Spread, Bias"
+
+[node name="ShapeGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="ShapeRecognitionTitle" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+layout_mode = 2
+text = "Shape Recognition"
+vertical_alignment = 1
+
+[node name="ShapeRecognition" type="HSlider" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.0
+
+[node name="ShapeRecognitionVal" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="LightRotationTitle" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+layout_mode = 2
+text = "Light Rotation"
+vertical_alignment = 1
+
+[node name="LightRotation" type="HSlider" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -3.14
+max_value = 3.14
+step = 0.01
+value = 0.0
+
+[node name="LightRotationVal" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.00"
+horizontal_alignment = 2
+
+[node name="SlopeBlurTitle" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+layout_mode = 2
+text = "Slope Blur"
+vertical_alignment = 1
+
+[node name="SlopeBlur" type="HSlider" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 5.0
+max_value = 100.0
+step = 1.0
+value = 50.0
+
+[node name="SlopeBlurVal" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "50.00"
+horizontal_alignment = 2
+
+[node name="ShapeBiasTitle" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+layout_mode = 2
+text = "Shape Bias"
+vertical_alignment = 1
+
+[node name="ShapeBias" type="HSlider" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="ShapeBiasVal" type="Label" parent="ScrollContainer/Column/ShapeGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "0.50"
+horizontal_alignment = 2
+
+[node name="FinalGroup" type="GridContainer" parent="ScrollContainer/Column"]
+layout_mode = 2
+columns = 3
+
+[node name="FinalContrastTitle" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+layout_mode = 2
+text = "Final Contrast"
+vertical_alignment = 1
+
+[node name="FinalContrast" type="HSlider" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 10.0
+step = 0.01
+value = 5.0
+
+[node name="FinalContrastVal" type="Label" parent="ScrollContainer/Column/FinalGroup"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+text = "5.00"
+horizontal_alignment = 2
+
+[node name="ResetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+tooltip_text = "Restore every parameter of this map to its default value"
+text = "Reset Parameters"
+
+[node name="SetButton" type="Button" parent="ScrollContainer/Column"]
+layout_mode = 2
+text = "Set as Normal Map"
